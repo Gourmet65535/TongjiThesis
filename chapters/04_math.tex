@@ -2,18 +2,22 @@
 
 \section{系统总体架构设计}
 
-本系统采用典型的分层架构设计模式，自上而下划分为表现层、接口层、业务逻辑层以及数据存储层，各层职责明确，形成高内聚、低耦合的系统结构，便于开发维护与功能扩展。系统总体架构如\figref{fig:system-architecture}所示。
+本系统采用典型的分层架构设计模式，自上而下划分为表现层、接口层、业务逻辑层以及数据存储层。各层职责明确，形成高内聚、低耦合的系统结构，便于开发维护与功能扩展。系统总体架构如\figref{fig:system-architecture}所示。
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.82\textwidth]{figures/fig-4-1-system-architecture.png}
+  \includegraphics[width=0.94\textwidth]{figures/fig-4-1-system-architecture.png}
   \caption{系统总体架构图}
   \label{fig:system-architecture}
 \end{figure}
 
-表现层由微信小程序构成，是用户直接交互的界面层。该层承担所有校园出行相关信息的呈现、操作输入及交互响应，包括班车信息查询、拼车信息发布与匹配、社区交流及即时消息功能。表现层通过界面组件和数据绑定将系统提供的功能直观呈现给用户，同时负责初步数据验证，如表单输入检查、日期和时间范围校验等，以减轻后端负担。通过良好的界面设计与用户体验优化，表现层实现了信息展示的直观性和操作的便捷性，使用户能够快速获取所需的出行服务。
+表现层由微信小程序构成，是用户直接交互的界面层。该层承担所有校园出行相关信息的呈现、操作输入及交互响应，包括班车信息查询、拼车信息发布与匹配、社区交流及即时消息功能。表现层通过界面组件和数据绑定将系统提供的功能直观呈现给用户，同时负责初步数据验证，如表单输入检查、日期和时间范围校验等，以减轻后端负担。
 
-接口层位于表现层与业务逻辑层之间，是前后端通信的桥梁。该层通过统一的RESTful API规范，将前端的请求准确路由至对应的业务模块，同时负责用户身份认证、权限校验和请求参数的初步处理，确保每一次操作均在合法范围内执行。接口层通过标准化的数据交换格式返回处理结果，既保证了前端调用的简便性，也为后端服务的独立部署和模块扩展提供了支持。接口层还承担日志记录与异常捕获功能，对请求流程进行监控，为系统维护和故障排查提供依据。
+通过良好的界面设计与用户体验优化，表现层实现了信息展示的直观性和操作的便捷性，使用户能够快速获取所需的出行服务。
+
+接口层位于表现层与业务逻辑层之间，是前后端通信的桥梁。该层通过统一的RESTful API规范，将前端的请求准确路由至对应的业务模块，同时负责用户身份认证、权限校验和请求参数的初步处理，确保每一次操作均在合法范围内执行。接口层通过标准化的数据交换格式返回处理结果，既保证了前端调用的简便性，也为后端服务的独立部署和模块扩展提供了支持。
+
+接口层还承担日志记录与异常捕获功能，对请求流程进行监控，为系统维护和故障排查提供依据。
 
 业务逻辑层是系统的核心部分，由Spring Boot微服务组成，包括用户管理、拼车服务、社区交流、公共交通信息以及聊天与通知五大功能模块。用户管理模块负责用户注册、登录、信息维护以及信用分管理，保障身份认证的安全性和用户数据的一致性；拼车服务模块是系统的核心，通过二层匹配算法和基于随机森林的推荐机制，对用户发布的拼车信息进行智能筛选和排序，提升拼车成功率，同时实现行程全生命周期管理，包括发布、申请、审批、行程完成及反馈统计；社区交流模块实现帖子管理、评论互动和搜索功能，为校园用户提供信息交流和经验分享平台；公共交通信息模块集中管理校内班车及北安跨线公交数据，为用户提供准确、及时的出行参考；聊天与通知模块则提供即时消息服务和会话管理功能，保证用户间的高效沟通。业务逻辑层在处理业务流程时，严格遵循系统规则，实现数据校验、事务管理和算法计算，为前端提供可靠的操作接口。
 
@@ -31,7 +35,7 @@
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.9\textwidth]{figures/fig-4-2-user-class-diagram.png}
+  \includegraphics[width=0.96\textwidth]{figures/fig-4-2-user-class-diagram.png}
   \caption{用户管理模块类图}
   \label{fig:user-class-diagram}
 \end{figure}
@@ -50,7 +54,7 @@
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.9\textwidth]{figures/fig-4-3-carpool-class-diagram.png}
+  \includegraphics[width=0.96\textwidth]{figures/fig-4-3-carpool-class-diagram.png}
   \caption{拼车服务模块类图}
   \label{fig:carpool-class-diagram}
 \end{figure}
@@ -59,7 +63,7 @@
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.82\textwidth]{figures/fig-4-4-application-sequence.png}
+  \includegraphics[width=0.94\textwidth]{figures/fig-4-4-application-sequence.png}
   \caption{拼车申请处理时序图}
   \label{fig:application-sequence}
 \end{figure}
@@ -68,7 +72,7 @@
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/fig-4-5-matching-sequence.png}
+  \includegraphics[width=0.94\textwidth]{figures/fig-4-5-matching-sequence.png}
   \caption{拼车匹配查询时序图}
   \label{fig:matching-sequence}
 \end{figure}
@@ -117,7 +121,7 @@
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.82\textwidth]{figures/fig-4-6-mysql-er.png}
+  \includegraphics[width=0.94\textwidth]{figures/fig-4-6-mysql-er.png}
   \caption{MySQL数据库核心业务表ER图}
   \label{fig:mysql-er}
 \end{figure}
