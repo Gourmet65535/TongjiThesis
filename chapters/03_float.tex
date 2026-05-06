@@ -1,488 +1,97 @@
-\chapter{图表与代码}\label{chap:float}
+\chapter{需求分析}\label{chap:requirement}
 
-本章介绍插图、表格、算法和代码等浮动体的使用方法。浮动体可以自由浮动在页面中，\LaTeX{} 会自动选择合适的位置进行排版。如需固定位置，可使用 \pkg{float} 宏包的 \texttt{[H]} 参数。
+\section{系统总体需求概述}
 
-浮动体位置选项说明：\texttt{h}（here，当前位置）、\texttt{t}（top，页面顶部）、\texttt{b}（bottom，页面底部）、\texttt{p}（page，独立浮动页）、\texttt{!}（放宽内部限制）、\texttt{H}（强制固定位置，需 \pkg{float} 宏包）。
+近年来，随着高校多校区办学模式的普及，校区之间及校内外的通勤需求显著增加，尤其在节假日或跨校区活动期间，校园交通系统承载压力逐渐显现。现有的班车排班信息多分散于官网公告、社交群组或线下布告栏，缺乏统一数字化入口，而拼车需求则高度依赖即时通讯等非正式渠道，表现出随机性强、透明度低的特征。这种信息高度碎片化的现状导致师生在出行决策过程中面临较高的检索成本，同时缺乏科学的算法调度与标准化的供需撮合机制，造成拼车匹配效率低、行程冗余及安全保障不足等问题。在此背景下，构建一个集信息整合、智能匹配与用户交互于一体的综合交通平台，对于提升出行效率、优化资源配置及校园共享出行的安全可靠性具有重要现实意义。
 
-\section{插图}
+本系统面向校园用户，依托微信小程序作为前端载体，结合基于Spring Boot的后端微服务架构，实现多类出行服务的统一整合。系统在总体设计上需满足信息服务、业务处理与用户交互三个层面的需求。一方面，系统需要为用户提供结构化的公共交通信息与拼车信息查询能力，使用户能够快速获取出行方案；另一方面，系统需支持拼车业务的完整流程，包括信息发布、筛选匹配、申请与确认以及行程反馈等，从而形成闭环服务；此外，系统还需提供必要的交流与沟通功能，以支撑用户在出行过程中的信息协同。
 
-\subsection{单个图形}
+在拼车场景中，系统不仅需要支持基本的信息匹配，还需引入一定的智能化机制，以提升匹配结果的合理性。通过构建基于随机森林算法的匹配模型，对用户需求特征进行综合分析，实现候选拼车信息的排序推荐，从而提高匹配效率与成功率。同时，为保障平台运行的稳定性与可信度，系统需建立基于用户行为的评价与信用机制，将历史出行反馈纳入后续匹配过程。
 
-要插入单个图形，可以使用 \verb|\includegraphics| 命令，并在其参数中指定图像文件名和一些选项。例如：
+综上，本系统的总体需求不仅体现在功能层面的完整性，还体现在数据组织的合理性与服务流程的连贯性，其目标在于构建一个高效、可扩展且具有一定智能化能力的校园出行服务平台。
 
-\begin{figure}[!htb]
+\section{功能需求分析}
+
+为更直观地说明系统功能边界及用户与各功能模块之间的交互关系，本文对平台主要业务场景绘制总体用例图，如\figref{fig:overall-usecase}所示。
+
+\begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.7\textwidth]{figures/tongjithesis.pdf}
-  \caption{\TongjiThesis{} 项目标志}
-  \label{fig:example}
+  \includegraphics[width=0.62\textwidth]{figures/fig-3-1-system-usecase.png}
+  \caption{系统总体用例图}
+  \label{fig:overall-usecase}
 \end{figure}
 
-这段代码会在浮动体中插入一个名为 \verb|figures/tongjithesis.pdf| 的图形，并将其居中显示。图形下方会有一个标题，同时为该图形标上标签，以便于交叉引用。
+由\figref{fig:overall-usecase}可知，平台用户围绕拼车、论坛、交通查询和即时交流等核心功能展开交互，其中拼车服务构成系统的主业务链路，论坛与聊天功能则为信息共享与协同沟通提供支撑。
 
-如需在正文中引用该图，可使用 \verb|\cref{fig:example}| 命令，效果为“\cref{fig:example}”；也可使用 \verb|\figref{fig:example}| 命令，效果为“\figref{fig:example}”。
+\subsection{用户管理模块}
 
-需要注意的是，在使用 \verb|\includegraphics| 命令时，应该将图像文件放在与主文档相同的目录中，或者在参数中指定文件的完整路径。
+用户管理模块作为系统的基础支撑模块，承担用户身份认证与信息管理的功能。系统采用微信登录机制，实现用户身份的快速验证与会话状态的自动维护，从而降低用户使用门槛。在登录成功后，系统需能够持久化用户基本信息，并支持后续自动恢复登录状态，以提升使用连续性。
 
-推荐使用矢量图格式（PDF）用于图表和流程图，位图建议使用 PNG 格式（照片可用 JPG），矢量图在缩放时不会失真。
+在用户信息管理方面，系统需支持用户对个人资料的查看与编辑，包括头像、昵称等内容。相关信息需通过后端服务统一管理，并保证数据更新的及时性与一致性。此外，系统还需维护用户的信用分等关键指标，该指标基于用户在拼车过程中的行为表现动态更新，用于反映用户的履约情况与可信程度，并为拼车匹配与筛选提供参考依据。
 
-注意在浮动体内部应使用 \verb|\centering| 命令而非 \verb|\begin{center}...\end{center}| 环境，后者会引入额外的垂直间距。
+\subsection{拼车服务模块}
 
-\subsection{多个图形}
+拼车服务模块是系统的核心业务模块，其功能需求贯穿信息发布、检索匹配、交互决策及结果反馈等多个阶段，其关键用例如\figref{fig:carpool-usecase}所示。
 
-如果需要在同一浮动体中插入多个图形，可以使用 \pkg{subcaption} 宏包（旧的 \pkg{subfigure} 与 \pkg{subfig} 宏包已过时，请勿使用）。
-最简单的做法是将多张图并排放入同一 \texttt{figure} 环境、用 \cs{hspace} 间隔——此时多图共用一个图号，没有各自子图题，如\cref{fig:example-subfig-1}。
-
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.4\textwidth]{example-image-a}
-  \hspace{1cm}
-  \includegraphics[width=0.4\textwidth]{example-image-b}
-  \caption{这是一个示例图形组}
-  \label{fig:example-subfig-1}
+  \includegraphics[width=0.74\textwidth]{figures/fig-3-2-carpool-usecase.png}
+  \caption{拼车模块用例图}
+  \label{fig:carpool-usecase}
 \end{figure}
 
-如果多个图形相互独立，不共用一个图形计数器，可以使用 \texttt{minipage} 或 \texttt{parbox}，如\cref{fig:parallel1,fig:parallel2}。
-
-\begin{figure}[!htb]
-  \begin{minipage}{0.4\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{example-image-a}
-    \caption{并排第一个图}
-    \label{fig:parallel1}
-  \end{minipage}\hfill
-  \begin{minipage}{0.4\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{example-image-b}
-    \caption{并排第二个图}
-    \label{fig:parallel2}
-  \end{minipage}
-\end{figure}
-
-若希望多个子图共用一个计数器并分别拥有子图题，使用 \pkg{subcaption} 宏包的 \cs{subcaptionbox} 命令（或 \texttt{subfigure} 环境），子图号以 a)、b) 区分，如\cref{fig:subcaptionbox}。
-
-\begin{figure}[!htb]
-  \centering
-  \subcaptionbox{左图}{\includegraphics[width=0.4\textwidth]{example-image-a}}
-  \hspace{1cm}
-  \subcaptionbox{右图}{\includegraphics[width=0.3\textwidth]{example-image-b}}
-  \caption{包含子图题的示例（使用 subcaptionbox）}
-  \label{fig:subcaptionbox}
-\end{figure}
-
-
-\section{表格}
-
-\subsection{基本表格}
-
-编排表格时应简单明了、表达一致，内容明晰易懂，表文呼应，内容一致。表题应置于表格上方。
-
-表格的编排建议采用国际通行的三线表\footnote{三线表以其形式简洁、功能分明、阅读方便而在科技论文中被推荐使用。三线表通常只有3条线，即顶线、底线和栏目线，没有竖线。}。可以使用 \pkg{booktabs} 宏包提供的 \cs{toprule}、\cs{midrule} 和 \cs{bottomrule} 命令来绘制三线表。同时，\pkg{longtable} 宏包可以与三线表很好地配合使用，可以排版较长的表格。
-要编写三线表，需要在表格的头部、底部和每一栏之间绘制水平线。其中，\cs{toprule} 绘制顶部线，\cs{midrule} 绘制中部线，\cs{bottomrule} 绘制底部线。可以按照如下方式绘制三线表：
-
-\begin{table}[!hpt]
-  \caption{一个三线表}
-  \label{tab:firstone}
-  \centering
-  \begin{tabular}{@{}llr@{}} \toprule
-    \multicolumn{2}{c}{\textbf{Item}}                            \\ \cmidrule(r){1-2}
-    \textbf{Animal} & \textbf{Description} & \textbf{Price} (\$) \\ \midrule
-    Gnat            & per gram             & 13.65               \\
-                    & each                 & 0.01                \\
-    Gnu             & stuffed              & 92.50               \\
-    Emu             & stuffed              & 33.33               \\
-    Armadillo       & frozen               & 8.99                \\ \bottomrule
-  \end{tabular}
-\end{table}
-
-\subsection{复杂表格}
-
-我们经常会在表格下方标注数据来源，或者对表格里面的条目进行解释。可以用
-\pkg{threeparttable} 实现带有脚注的表格，如\cref{tab:bigtable}。
-
-\begin{table}[!htb]
-  \centering
-  \begin{threeparttable}[b]
-    \caption{一个更大的三线表}
-    \label{tab:bigtable}
-    \begin{tabular}{@{}llrrrrrrr@{}} \toprule
-      \multicolumn{2}{c}{\textbf{Item}} & \multicolumn{2}{c}{\textbf{Category 1}} & \multicolumn{2}{c}{\textbf{Category 2}} & \multicolumn{2}{c}{\textbf{Category 3}} & \multicolumn{1}{c}{\textbf{Total}}                                                                                     \\ \cmidrule(r){1-2} \cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8} \cmidrule(l){9-9}
-      \textbf{Animal}                   & \textbf{Description}                    & \textbf{Price} (\$)                     & \textbf{Quantity}                       & \textbf{Price} (\$)                & \textbf{Quantity} & \textbf{Price} (\$) & \textbf{Quantity} & \textbf{Price} (\$) \\ \midrule
-      Gnat                              & per gram\tnote{a}                       & 13.65                                   & 100                                     & 12.35                              & 200               & 11.55               & 150               & 3650.00             \\
-                                        & each                                    & 0.01                                    & 5000                                    & 0.01                               & 10000             & 0.009               & 20000             & 550.00              \\
-      Gnu                               & stuffed                                 & 92.50                                   & 10                                      & 94.50                              & 15                & 96.50               & 20                & 5815.00             \\
-      Emu                               & stuffed                                 & 33.33                                   & 25                                      & 34.33                              & 30                & 35.33               & 35                & 2704.95             \\
-      Armadillo                         & frozen                                  & 8.99                                    & 50                                      & 7.99                               & 40                & 6.99                & 30\tnote{b}       & 1094.50             \\ \bottomrule
-    \end{tabular}
-    \begin{tablenotes}
-      \item [a] 第一条脚注。
-      \item [b] 第二条脚注。
-    \end{tablenotes}
-  \end{threeparttable}
-\end{table}
-
-为了编写更复杂的表格，我们可以使用 \href{https://www.tablesgenerator.com/}{Tables Generator} 来生成 \LaTeX{} 代码。该工具可以方便地设置表格的列数、行数、内容、格式、颜色等属性，支持常用的表格类型和样式，并且可以实时生成 \LaTeX{} 代码和预览效果，避免手动编写 \LaTeX{} 代码时出错。
-
-
-如某个表需要转页接排，可以用 \pkg{longtable} 实现。接排时表题省略，表头应重复书
-写，并在右上方写“续表 X”，如\cref{tab:performance}。
-
-\begin{ThreePartTable}
-  \begin{TableNotes}
-    \item[a] 一个脚注
-    \item[b] 另一个脚注
-  \end{TableNotes}
-  \begin{longtable}[c]{c*{6}{r}}
-    \caption{实验数据}
-    \label{tab:performance}                                                                                                                      \\
-    \toprule
-    \textbf{测试程序\tnote{b}} & \multicolumn{1}{c}{\textbf{正常运行}}   & \multicolumn{1}{c}{\textbf{同步}}
-                           & \multicolumn{1}{c}{\textbf{检查点}}    & \multicolumn{1}{c}{\textbf{卷回恢复}}
-                           & \multicolumn{1}{c}{\textbf{进程迁移}}   & \multicolumn{1}{c}{\textbf{检查点}}                                              \\
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \multicolumn{1}{c}{\textbf{时间} (s)}
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \multicolumn{1}{c}{\textbf{时间} (s)}
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \textbf{文件}（KB）                                                               \\
-    \midrule
-    \endfirsthead
-    \tjlongtablecont{7}
-
-    \toprule
-    \textbf{测试程序\tnote{b}} & \multicolumn{1}{c}{\textbf{正常运行}}   & \multicolumn{1}{c}{\textbf{同步}}
-                           & \multicolumn{1}{c}{\textbf{检查点}}    & \multicolumn{1}{c}{\textbf{卷回恢复}}
-                           & \multicolumn{1}{c}{\textbf{进程迁移}}   & \multicolumn{1}{c}{\textbf{检查点}}                                              \\
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \multicolumn{1}{c}{\textbf{时间} (s)}
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \multicolumn{1}{c}{\textbf{时间} (s)}
-                           & \multicolumn{1}{c}{\textbf{时间} (s)} & \textbf{文件}（KB）                                                               \\
-    \midrule
-    \endhead
-    \hline
-    \multicolumn{7}{r}{续下页}
-    \endfoot
-    \insertTableNotes
-    \endlastfoot
-    CG.C.2                 & 23.05                               & 0.002                               & 0.116          & 0.035 & 0.589 & 32491  \\
-    CG.A.4                 & 15.06                               & 0.003                               & 0.067          & 0.021 & 0.351 & 18211  \\
-    CG.A.8                 & 13.38                               & 0.004                               & 0.072          & 0.023 & 0.210 & 9890   \\
-    CG.B.2                 & 867.45                              & 0.002                               & 0.864          & 0.232 & 3.256 & 228562 \\
-    CG.B.4                 & 501.61                              & 0.003                               & 0.438          & 0.136 & 2.075 & 123862 \\
-    CG.B.8                 & 384.65                              & 0.004                               & 0.457          & 0.108 & 1.235 & 63777  \\
-    MG.A.2                 & 112.27                              & 0.002                               & 0.846\tnote{a} & 0.237 & 3.930 & 236473 \\
-    MG.A.4                 & 59.84                               & 0.003                               & 0.442          & 0.128 & 2.070 & 123875 \\
-    MG.A.8                 & 31.38                               & 0.003                               & 0.476          & 0.114 & 1.041 & 60627  \\
-    MG.B.2                 & 526.28                              & 0.002                               & 0.821          & 0.238 & 4.176 & 236635 \\
-    MG.B.4                 & 280.11                              & 0.003                               & 0.432          & 0.130 & 1.706 & 123793 \\
-    MG.B.8                 & 148.29                              & 0.003                               & 0.442          & 0.116 & 0.893 & 60600  \\
-    LU.A.2                 & 2116.54                             & 0.002                               & 0.110          & 0.030 & 0.532 & 28754  \\
-    LU.A.4                 & 1102.50                             & 0.002                               & 0.069          & 0.017 & 0.255 & 14915  \\
-    LU.A.8                 & 574.47                              & 0.003                               & 0.067          & 0.016 & 0.192 & 8655   \\
-    LU.B.2                 & 9712.87                             & 0.002                               & 0.357          & 0.104 & 1.734 & 101975 \\
-    LU.B.4                 & 4757.80                             & 0.003                               & 0.190          & 0.056 & 0.808 & 53522  \\
-    LU.B.8                 & 2444.05                             & 0.004                               & 0.222          & 0.057 & 0.548 & 30134  \\
-    EP.A.2                 & 123.81                              & 0.002                               & 0.010          & 0.003 & 0.074 & 1834   \\
-    EP.A.4                 & 61.92                               & 0.003                               & 0.011          & 0.004 & 0.073 & 1743   \\
-    EP.A.8                 & 31.06                               & 0.004                               & 0.017          & 0.005 & 0.073 & 1661   \\
-    EP.B.2                 & 495.49                              & 0.001                               & 0.009          & 0.003 & 0.196 & 2011   \\
-    SP.B.4                 & 397.69                              & 0.002                               & 0.015          & 0.005 & 0.122 & 1763   \\
-    SP.B.8                 & 196.74                              & 0.003                               & 0.018          & 0.006 & 0.082 & 1865   \\
-    AA.A.2                 & 13.81                               & 0.002                               & 0.012          & 0.004 & 0.074 & 1362   \\
-    AA.A.4                 & 6.92                                & 0.003                               & 0.011          & 0.003 & 0.073 & 1331   \\
-    AA.A.8                 & 3.06                                & 0.004                               & 0.017          & 0.004 & 0.073 & 1225   \\
-    AA.B.2                 & 49.49                               & 0.001                               & 0.009          & 0.003 & 0.196 & 2254   \\
-    AA.B.4                 & 24.69                               & 0.002                               & 0.012          & 0.004 & 0.122 & 1453   \\
-    AA.B.8                 & 12.74                               & 0.003                               & 0.018          & 0.005 & 0.082 & 1432   \\
-    AA.C.2                 & 13.81                               & 0.002                               & 0.012          & 0.004 & 0.074 & 1362   \\
-    AA.C.4                 & 6.92                                & 0.003                               & 0.011          & 0.003 & 0.073 & 1331   \\
-    AA.C.8                 & 3.06                                & 0.004                               & 0.017          & 0.004 & 0.073 & 1225   \\
-    EP.C.2                 & 495.49                              & 0.001                               & 0.009          & 0.003 & 0.196 & 2011   \\
-    EP.C.4                 & 397.69                              & 0.002                               & 0.015          & 0.005 & 0.122 & 1763   \\
-    EP.C.8                 & 196.74                              & 0.003                               & 0.018          & 0.006 & 0.082 & 1865   \\
-    \bottomrule
-  \end{longtable}
-\end{ThreePartTable}
-
-
-
-\section{算法}
-
-算法环境可由 \pkg{algorithm} + \pkg{algpseudocode}（本模板已加载）或较新的 \pkg{algorithm2e} 宏包实现。
-\cref{algo:algorithm} 是一个使用 \pkg{algpseudocode} 的示例。
-
-\begin{algorithm}
-  \caption{计算斐波那契数列}\label{algo:algorithm}
-  \begin{algorithmic}[1]
-    \Require $n \geq 0$
-    \Ensure $fib(n)$
-    \Function{Fibonacci}{$n$}
-    \If{$n \leq 1$}
-    \State \Return $n$
-    \Else
-    \State \Return \Call{Fibonacci}{$n-1$} + \Call{Fibonacci}{$n-2$}
-    \EndIf
-    \EndFunction
-  \end{algorithmic}
-\end{algorithm}
-
-\section{代码}
-
-\subsection{代码高亮方式}
-
-本模板提供 \pkg{listings} 和 \pkg{minted} 两种代码高亮方案，可通过文档类选项 \texttt{minted=true}（默认）或 \texttt{minted=false} 切换。\pkg{listings} 是 \LaTeX{} 原生的代码显示包，始终可用，无需外部依赖；\pkg{minted} 基于 Python Pygments，提供更精确的语法解析和更丰富的高亮效果，但需要安装 Python 和 Pygments（\texttt{pip install pygments}），编译时需添加 \texttt{-shell-escape} 参数。若环境受限，可设置 \texttt{minted=false} 回退至 \pkg{listings}。
-
-\subsection{代码块示例}
-
-\pkg{listings} 包是 \LaTeX{} 最常用的代码高亮工具，无论 \texttt{minted} 选项如何设置，它始终可用。以下是一个基本示例：
-
-\begin{lstlisting}[
-  language=Python,         % 指定语法高亮的编程语言
-  caption={使用listings包的Python示例},
-  label=lst:basic-example
-]
-# 这是一个简单的Python函数
-def hello_world(name: str = "World") -> str:
-    """返回个性化问候语"""
-    greeting = f"Hello, {name}!"
-    return greeting
-
-# 调用函数并打印结果
-print(hello_world())  # 输出: Hello, World!
-print(hello_world("LaTeX"))  # 输出: Hello, LaTeX!
-\end{lstlisting}
-
-\pkg{listings} 包支持绝大多数编程语言，如 C/C++、Java、Python、MATLAB、R、SQL 等，使用 \texttt{language} 参数指定即可。
-
-\subsubsection{关于跨页代码段的说明}
-\pkg{listings} 和 \pkg{minted} 均支持跨页显示代码段。一般而言，学术写作中不建议在正文中放置大段代码，建议仅展示关键代码片段，将完整代码放入附录或以外部链接形式提供。
-
-本模板提供了 \texttt{longlisting} 环境，用于排版需要跨页显示并带有标题的代码块。与浮动体代码环境不同，\texttt{longlisting} 不会浮动，可以自然跨越多页。在环境内部放置代码块，并用 \cs{caption} 添加标题即可。以下为示例：
-
-\makeatletter
-\begin{longlisting}
-\iftongjithesis@minted
-\begin{minted}{python}
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
-
-# 同济大学五级制绩点对照（2017年版）
-GRADE_TABLE: Dict[str, Tuple[int, int]] = {
-    "A": (5, 95),  # 优 Excellent
-    "B": (4, 85),  # 良 Good
-    "C": (3, 75),  # 中 Fair
-    "D": (2, 65),  # 及格 Pass
-    "F": (0, 30),  # 不及格 Failed
-}
-
-VALID_GRADES = set(GRADE_TABLE.keys())
-
-
-@dataclass
-class Course:
-    """课程信息"""
-    name: str      # 课程名称
-    credits: float # 学分
-    grade: str     # 成绩等级 (A/B/C/D/F)
-
-    def __post_init__(self):
-        if self.grade not in VALID_GRADES:
-            raise ValueError(f"无效的成绩等级: {self.grade}")
-        if self.credits <= 0:
-            raise ValueError(f"学分须为正数: {self.credits}")
-
-    @property
-    def grade_point(self) -> int:
-        """课程绩点"""
-        return GRADE_TABLE[self.grade][0]
-
-    @property
-    def equiv_score(self) -> int:
-        """百分制折算值"""
-        return GRADE_TABLE[self.grade][1]
-
-    def __repr__(self) -> str:
-        return f"{self.name}({self.credits}学分, {self.grade})"
-
-
-@dataclass
-class Transcript:
-    """成绩单：按同济大学本科生成绩计算方法"""
-    student_name: str = ""
-    student_id: str = ""
-    courses: List[Course] = field(default_factory=list)
-
-    def add(self, name: str, credits: float, grade: str) -> None:
-        """添加一门课程成绩"""
-        self.courses.append(Course(name, credits, grade))
-
-    @property
-    def total_credits(self) -> float:
-        """总学分"""
-        return sum(c.credits for c in self.courses)
-
-    @property
-    def gpa(self) -> float:
-        """平均绩点 = sum(学分 * 绩点) / sum(学分)"""
-        if self.total_credits == 0:
-            return 0.0
-        weighted = sum(c.credits * c.grade_point for c in self.courses)
-        return round(weighted / self.total_credits, 2)
-
-    @property
-    def avg_score(self) -> float:
-        """百分制平均成绩 = sum(折算值 * 学分) / sum(学分)"""
-        if self.total_credits == 0:
-            return 0.0
-        weighted = sum(c.credits * c.equiv_score for c in self.courses)
-        return round(weighted / self.total_credits, 1)
-
-    def ranking(self) -> List[Tuple[str, float, int]]:
-        """按绩点降序排列课程"""
-        return sorted(
-            [(c.name, c.credits, c.grade_point) for c in self.courses],
-            key=lambda x: x[2], reverse=True,
-        )
-
-    def summary(self) -> str:
-        """生成成绩摘要"""
-        lines = [f"学生: {self.student_name} ({self.student_id})"]
-        lines.append(f"总学分: {self.total_credits}")
-        lines.append(f"平均绩点 (GPA): {self.gpa}")
-        lines.append(f"百分制平均成绩: {self.avg_score}")
-        return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    t = Transcript("张三", "2024001")
-    t.add("高等数学", 6.0, "A")
-    t.add("线性代数", 4.0, "B")
-    t.add("数据结构", 4.0, "A")
-    t.add("大学物理", 4.0, "C")
-    t.add("程序设计", 3.0, "A")
-
-    print(t.summary())
-    print("\n课程排名:")
-    for name, credits, gp in t.ranking():
-        print(f"  {name}: {credits}学分, 绩点{gp}")
-\end{minted}
-\else
-\begin{lstlisting}[language=Python]
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
-
-# 同济大学五级制绩点对照（2017年版）
-GRADE_TABLE: Dict[str, Tuple[int, int]] = {
-    "A": (5, 95),  # 优 Excellent
-    "B": (4, 85),  # 良 Good
-    "C": (3, 75),  # 中 Fair
-    "D": (2, 65),  # 及格 Pass
-    "F": (0, 30),  # 不及格 Failed
-}
-
-VALID_GRADES = set(GRADE_TABLE.keys())
-
-
-@dataclass
-class Course:
-    """课程信息"""
-    name: str      # 课程名称
-    credits: float # 学分
-    grade: str     # 成绩等级 (A/B/C/D/F)
-
-    def __post_init__(self):
-        if self.grade not in VALID_GRADES:
-            raise ValueError(f"无效的成绩等级: {self.grade}")
-        if self.credits <= 0:
-            raise ValueError(f"学分须为正数: {self.credits}")
-
-    @property
-    def grade_point(self) -> int:
-        """课程绩点"""
-        return GRADE_TABLE[self.grade][0]
-
-    @property
-    def equiv_score(self) -> int:
-        """百分制折算值"""
-        return GRADE_TABLE[self.grade][1]
-
-    def __repr__(self) -> str:
-        return f"{self.name}({self.credits}学分, {self.grade})"
-
-
-@dataclass
-class Transcript:
-    """成绩单：按同济大学本科生成绩计算方法"""
-    student_name: str = ""
-    student_id: str = ""
-    courses: List[Course] = field(default_factory=list)
-
-    def add(self, name: str, credits: float, grade: str) -> None:
-        """添加一门课程成绩"""
-        self.courses.append(Course(name, credits, grade))
-
-    @property
-    def total_credits(self) -> float:
-        """总学分"""
-        return sum(c.credits for c in self.courses)
-
-    @property
-    def gpa(self) -> float:
-        """平均绩点 = sum(学分 * 绩点) / sum(学分)"""
-        if self.total_credits == 0:
-            return 0.0
-        weighted = sum(c.credits * c.grade_point for c in self.courses)
-        return round(weighted / self.total_credits, 2)
-
-    @property
-    def avg_score(self) -> float:
-        """百分制平均成绩 = sum(折算值 * 学分) / sum(学分)"""
-        if self.total_credits == 0:
-            return 0.0
-        weighted = sum(c.credits * c.equiv_score for c in self.courses)
-        return round(weighted / self.total_credits, 1)
-
-    def ranking(self) -> List[Tuple[str, float, int]]:
-        """按绩点降序排列课程"""
-        return sorted(
-            [(c.name, c.credits, c.grade_point) for c in self.courses],
-            key=lambda x: x[2], reverse=True,
-        )
-
-    def summary(self) -> str:
-        """生成成绩摘要"""
-        lines = [f"学生: {self.student_name} ({self.student_id})"]
-        lines.append(f"总学分: {self.total_credits}")
-        lines.append(f"平均绩点 (GPA): {self.gpa}")
-        lines.append(f"百分制平均成绩: {self.avg_score}")
-        return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    t = Transcript("张三", "2024001")
-    t.add("高等数学", 6.0, "A")
-    t.add("线性代数", 4.0, "B")
-    t.add("数据结构", 4.0, "A")
-    t.add("大学物理", 4.0, "C")
-    t.add("程序设计", 3.0, "A")
-
-    print(t.summary())
-    print("\n课程排名:")
-    for name, credits, gp in t.ranking():
-        print(f"  {name}: {credits}学分, 绩点{gp}")
-\end{lstlisting}
-\fi
-\caption{跨页代码段示例（Python）}\label{lst:cross-page}
-\end{longlisting}
-\makeatother
-
-行内代码可以使用 \verb|\verb| 命令，或使用高亮命令以获得更好的效果，例如：
-\makeatletter
-\iftongjithesis@minted
-  \mintinline{python}{print("Hello")}
-\else
-  \lstinline[language=Python]{print("Hello")}
-\fi
-\makeatother
-（与普通文本 \verb|print("Hello")| 对比）。
-
-\section{分页控制}
-
-在\LaTeX{}排版系统中，\verb|\newpage| 和 \verb|\clearpage| 命令都能强制开始新页面，但它们有着重要区别。\verb|\newpage| 仅创建新页面，而 \verb|\clearpage| 还会处理所有待处理的浮动体，确保它们在新页面前被正确放置。
-
-当需要确保所有浮动体都已处理并开始新页面时，应优先使用 \verb|\clearpage| 而非 \verb|\newpage|，以防止浮动体累积至错误位置。
+在信息发布方面，系统需允许用户以结构化方式提交拼车信息，包括出发地点、目的地、出发日期及时间范围等关键参数。为保证数据规范性，出发地点需限定在预设选项范围内，从而减少歧义并提升匹配效率。
+
+在信息检索与筛选方面，系统需支持基于多条件的组合查询，使用户能够按照起点、终点及时间范围等维度快速筛选符合需求的拼车信息。在此基础上，引入二层匹配机制对候选结果进行排序。该机制通过随机森林模型对多维特征进行综合分析，生成匹配评分，并据此对拼车列表进行优化排序，从而提高推荐结果的相关性。
+
+在业务交互层面，系统需支持完整的拼车参与流程。用户可以对目标拼车发起申请，并实时查看申请状态；拼车发起人则能够查看申请列表，对申请进行通过或拒绝处理，并通过系统提供的通信功能与申请人进行沟通。在拼车完成后，系统需支持用户提交同行反馈，包括评分、是否迟到及是否完成行程等信息，并通过约束机制避免重复评价。
+
+在反馈处理方面，系统需基于用户提交的评价数据，对用户信用分、成功率及迟到率等指标进行动态更新，从而形成持续演化的信用体系。该机制不仅有助于约束用户行为，也为后续匹配过程提供数据支持。
+
+\subsection{社区交流模块}
+
+社区交流模块用于支持用户之间的内容互动，是系统中重要的辅助功能模块。该模块需提供基本的内容发布与管理能力，支持用户发布包含文本及图片的帖子，并对帖子进行浏览、搜索与分类查看。在互动功能方面，系统需支持点赞、取消点赞以及评论与评论删除等操作，从而构建基本的社交互动机制。
+
+在数据处理上，帖子与评论等内容具有非结构化特征，需采用适合文档存储的数据结构进行管理，以保证数据访问效率与扩展性。同时，系统需对用户操作进行权限控制，确保只有内容发布者或具备相应权限的用户才能执行删除操作。
+
+该模块的存在不仅增强了系统的互动性，还为用户提供了信息交流与经验分享的平台，在一定程度上补充了拼车与公共交通信息的不足。
+
+\subsection{公共交通信息模块}
+
+公共交通信息模块主要用于提供校内班车及常用公交线路的查询服务。该模块的核心需求在于信息展示的准确性与结构化表达。系统需对班车时刻表进行规范化存储，并以清晰的方式呈现发车时间、出发地点及目的地等信息，使用户能够快速获取所需内容。
+
+由于该类信息更新频率相对较低，系统在设计时可采用稳定的数据存储结构，并通过后端接口向前端提供统一的数据访问服务。在前端展示层面，需要兼顾信息密度与可读性，使用户在移动设备上能够高效浏览。
+
+该模块作为系统的基础信息服务部分，为用户提供了除拼车之外的另一类出行选择，有助于丰富整体出行方案。
+
+\subsection{聊天与通知模块}
+
+聊天与通知模块用于支持系统内部的实时通信与信息提醒，是保障拼车业务顺利进行的重要支撑模块。系统需基于会话机制管理用户之间的通信关系，支持单聊会话的创建与复用，并在拼车详情页或申请列表中提供快捷入口，以便用户快速建立联系。
+
+在消息处理方面，系统需支持文本消息的发送与接收，并维护消息列表及其时间顺序。同时，系统需记录会话的未读状态，并在用户进入聊天界面时自动更新已读标记，以保证信息状态的一致性。此外，还需在会话列表中展示最近一条消息及其时间，以提升用户的信息感知能力。
+
+在通知机制方面，系统需在关键业务节点触发提醒，例如拼车申请状态变化或反馈阶段开启等，从而引导用户及时完成相关操作。通过聊天与通知功能的结合，可以有效提升用户沟通效率，并增强系统整体的交互体验。
+
+\section{非功能需求分析}
+
+在系统设计过程中，除功能需求外，还需充分考虑性能、可用性、数据管理及安全性等非功能需求，以保证系统的稳定运行。
+
+在性能方面，系统需能够应对校园场景下的并发访问需求，尤其是在高峰时段，应保证关键接口具有较低的响应延迟。基于Spring Boot的后端架构需具备良好的扩展能力，以支持后续功能增加与用户规模增长。
+
+在可用性方面，前端采用微信小程序实现，需要充分考虑移动端交互特点，保证界面简洁、操作流程清晰，并减少用户操作成本。关键功能应具备良好的引导性，以降低使用门槛。
+
+在数据管理方面，系统采用MongoDB与MySQL相结合的方式进行存储。MongoDB主要用于处理帖子与聊天消息等非结构化数据，以提高读写效率；MySQL则用于存储用户及拼车业务数据，以保证数据一致性与事务支持。两类数据库需通过统一接口进行访问与管理，以避免数据冗余与不一致问题。
+
+在安全性方面，系统需实现基本的身份认证与权限控制机制，保护用户隐私数据不被非法访问。同时，通过构建基于行为反馈的信用体系，对用户行为进行约束，从而降低不良行为对系统运行的影响。
+
+\section{可行性分析}
+
+从技术角度分析，本系统所采用的技术方案具有较高的成熟度。微信小程序平台为系统提供了稳定的用户入口与良好的开发支持；Spring Boot框架能够高效构建后端服务，并支持模块化与微服务化设计；MongoDB与MySQL的组合能够兼顾数据灵活性与一致性需求。此外，随机森林算法在多特征决策问题中表现稳定，适用于拼车匹配场景中的排序与推荐任务。
+
+从实现角度来看，系统各功能模块划分清晰，业务流程明确，便于逐步开发与集成。同时，系统功能覆盖完整但规模适中，既能够体现软件工程的综合能力，又符合本科毕业设计的工作量要求。
+
+综上所述，本系统在需求层面具有明确的应用场景与合理的功能结构，在技术层面具备良好的实现基础，为后续系统设计与实现提供了可行保障。
+
+\section{本章小结}
+
+本章围绕校内综合交通平台的实际应用场景，对系统需求进行了系统性分析。在总体需求层面，明确了系统需整合班车信息、拼车服务及用户交互功能，解决信息碎片化及出行匹配效率低下的问题。在功能需求层面，本章通过模块化的方式详细分析了用户管理、拼车服务、社区交流、公共交通信息以及聊天与通知五个核心模块的功能要求，明确了各模块在业务流程中的角色与实现目标。同时，本章对系统的非功能需求进行了探讨，包括性能、可用性、数据管理与安全性要求，确保系统在设计与实现过程中具备稳定性、可扩展性与可靠性。通过对技术可行性的论证，本章为后续的系统设计与实现提供了坚实的理论与实践基础。

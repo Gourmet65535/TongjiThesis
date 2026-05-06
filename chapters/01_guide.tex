@@ -1,100 +1,31 @@
-\chapter{模板使用指南}\label{chap:guide}
+\chapter{引言}\label{chap:introduction}
 
-本文档是 \TongjiThesis{} 模板的使用示例，基本覆盖了模板的全部排版功能。建议在阅读本示例的同时参考源代码，了解各排版效果的实现方式。在正式撰写毕业设计（论文）时，请删除本章及后续示例章节，替换为实际内容。
+\section{研究背景与研究意义}
 
-后续示例章节依次演示：\cref{chap:introduction}（标题、列表、字体）、\cref{chap:float}（图、表、算法、代码）、\cref{chap:math}（数字单位、公式、定理）、\cref{chap:reference}（参考文献、脚注、交叉引用）、\cref{chap:conclusion}（总结与展望），附录则示范 \cs{appendixsection}/\cs{appendixsubsection} 的用法。
+近年来，随着我国高等教育规模的不断扩张，多校区办学已成为高校优化办学空间与学科布局的常规模式。校区之间的通勤需求、校内外交通衔接需求以及节假日期间集中出行需求显著增加，使得传统校园内部交通系统面临着前所未有的承载压力。由于部分新校区地处城市边缘，外围公共交通的局限性进一步强化了师生对校内班车及自发拼车行为的依赖。在这种背景下，如何通过技术手段优化资源配置，已成为高校后勤治理中亟待解决的现实课题。
 
-\section{文档类选项}
+在现有的运行机制下，校园交通信息的高度碎片化构成了主要的治理瓶颈。班车排班信息通常散落于官网公告、社交群组或线下布告栏，缺乏统一的数字化入口；而拼车需求则高度依赖即时通讯工具等非正式渠道，呈现出极强的随机性与低透明度。这种现状导致师生在出行决策时面临居高不下的检索成本。由于缺乏科学的算法调度与标准化的供需撮合机制，自发的拼车行为往往伴随着匹配效率低下、时间冗余度高以及安全信用保障缺失等隐忧，严重制约了校园共享出行模式的良性循环。
 
-在 \verb|main.tex| 的 \verb|\documentclass| 中设置选项。本模板基于 \pkg{ctexbook}，未被识别的选项会自动传递给 \pkg{ctexbook}。
+针对上述痛点，构建集约化、智能化的校内综合交通平台具有重要的现实意义。通过技术手段整合零散的班车动态与拼车信息，能够有效解决信息不对称问题，在降低师生查询与决策成本的同时，利用智能匹配机制实现出行需求的高效对接，从而优化校园整体的运力安排。这种模式不仅有助于减少学生个体的出行开支与时间损耗，更通过引入校内身份认证与信用评价体系，在校园内部建立起安全可靠的互助氛围。同时，推动拼车与公共交通优先的策略，也是高校响应绿色校园建设、提升后勤管理水平的重要途径。系统通过对出行数据的整合分析，既能为师生提供精准的导乘服务，也能为管理部门优化班车线路提供参考依据。综上所述，设计并开发一个综合化的校园交通平台，既是解决学生出行难题的工程实践，也是探索智慧校园建设新模式的有益尝试。
 
-\begin{table}[htbp]
-  \centering
-  \caption{文档类选项一览}\label{tab:class-options}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{llp{10cm}}
-    \toprule
-    \textbf{选项} & \textbf{默认值} & \textbf{说明} \\
-    \midrule
-    \texttt{oneside / twoside} & \texttt{oneside} & 单面或双面排版。双面模式下章节从奇数页开始，装订线自动左右交替。 \\
-    \texttt{degree} & \texttt{bachelor} & 学位类型，目前支持 \texttt{bachelor}（学士）。 \\
-    \texttt{field} & \texttt{science} & 专业类别。\texttt{science}：理工科（工科/理科），章节编号采用阿拉伯数字体系；\texttt{humanities}：文科（经管/人文/法学/外语/艺术），章节编号采用汉字体系，详见\cref{tab:heading-levels}。 \\
-    \texttt{fontset} & \texttt{fandol} & 字体集。\texttt{fandol}（跨平台，默认）、\texttt{windows}、\texttt{founder}、\texttt{adobe}。详见 \verb|style/font/| 目录下的字体定义文件。 \\
-    \texttt{times} & \texttt{false} & \texttt{true}：通过 \pkg{fontspec} 调用系统 Times New Roman 字体；\texttt{false}：使用 \pkg{newtx} 宏包提供的 \TeX{} 原生 Times 风格字体。两者视觉效果相近。 \\
-    \texttt{fullwidthstop} & \texttt{circle} & 句号样式：\texttt{circle}（默认，保留“。”）或 \texttt{dot}（替换为“．”全角句点）。 \\
-    \texttt{minted} & \texttt{true} & 代码高亮方案。\texttt{true} 使用 \pkg{minted}（需安装 Python 和 Pygments），\texttt{false} 回退至 \pkg{listings}。 \\
-    \texttt{biblatex} & \texttt{true} & 参考文献方案。\texttt{true} 使用 \BibLaTeX{} + \texttt{biber}（功能更丰富），\texttt{false} 使用 \BibTeX{} + \pkg{gbt7714}（编译更快）。 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+\section{本文主要工作}
 
-\section{填写论文信息}
+本文的主要工作集中于设计与实现一个面向校园出行的综合交通平台。系统以整合班车信息、拼车需求及用户互动功能为核心，旨在通过统一的数字化入口降低师生在出行决策中的信息检索成本，并提升整体出行效率。在系统架构设计上，采用前后端分离的模式，实现各模块独立运行的同时保证数据共享与业务协同，为后续功能扩展和用户规模增加提供充分的支持。平台业务流程的合理组织和信息整合机制的实现，是本文工作的重点之一，通过对班车查询、拼车信息发布以及用户交流功能的流程设计，确保系统在使用过程中能够提供顺畅、可靠的服务体验。在拼车匹配机制方面，本文综合考虑用户出行的时间、空间及行为特征，设计并实现了基于特征化数据表达和集成学习算法的匹配策略，以提高匹配合理性和成功率。与此同时，本文在系统实现过程中充分关注性能优化和可扩展性研究，通过高效的数据存储、缓存管理和接口设计，保证平台在高并发访问条件下仍能稳定运行。综上，本文的主要工作不仅在于实现一个功能完善、交互流畅的校园综合交通平台，更在于通过系统化的设计方法和算法实现，为校园智能交通管理提供技术支撑和实践参考。
 
-论文的封面、信息说明页与中英文摘要的个人信息分散在 \verb|chapters/| 目录下的两个文件中。各文件均已提供带注释的示例，照搬并替换字段值即可；模板据此自动生成对应页面。
+\section{论文结构安排}
 
-\begin{itemize}
-  \item \textbf{封面与信息说明页} —— \verb|chapters/metadata.tex|：\cs{school}、\cs{major}、\cs{student}、\cs{thesistitle}、\cs{thesistitleeng}、\cs{thesisadvisor}、\cs{thesisdate}（封面），以及 \cs{infotype}（\texttt{thesis}、\texttt{design} 或 \texttt{engineering}）、\cs{infoabstract}、\cs{infothesiswords}（论文）或 \cs{infodrawings}+\cs{infowordcount}（设计）、\cs{infomaterials}（信息说明页）。封面与信息说明页由随后的 \cs{MakeCover}、\cs{MakeInfoPage} 命令自动生成。
-  \item \textbf{中英文摘要} —— \verb|chapters/00_abstract.tex|：\cs{MakeAbstract}\verb|{正文}{关键词}| 与 \cs{MakeAbstractEng}\verb|{Text}{Keywords}|。
-\end{itemize}
+本文共分为七章，各章内容安排如下：
 
-\section{文档结构}
+第一章引言，主要介绍课题的研究背景与研究意义，分析校园出行问题的现状及存在的挑战，明确本文的研究目标、研究范围以及技术要求，并概述本文的主要工作和创新点，为后续章节提供研究基础。
 
-\verb|main.tex| 已预置了完整的论文结构，用户只需修改各 \verb|\input| 文件的内容：
+第二章相关技术概述，系统梳理拼车调度与匹配算法、校园出行及智能交通服务的国内外研究现状，重点分析现有方法在效率、匹配合理性及可扩展性方面的优势与局限，为本文的系统设计和算法实现提供理论依据。
 
-\begin{table}[htbp]
-  \centering
-  \caption{文档结构一览}\label{tab:doc-structure}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{llp{7.5cm}}
-    \toprule
-    \textbf{结构} & \textbf{命令} & \textbf{说明} \\
-    \midrule
-    封面       & \verb|\MakeCover|      & 由 \verb|metadata.tex| 中的信息自动生成 \\
-    信息说明页 & \verb|\MakeInfoPage|   & 由 \verb|metadata.tex| 中的信息自动生成 \\
-    前置部分   & \verb|\frontmatter|    & 页码切换为大写罗马数字（I, II, III\ldots） \\
-    摘要     & \verb|\MakeAbstract|     & 中英文摘要及关键词（\verb|00_abstract.tex|） \\
-    目录     & \verb|\tableofcontents|  & 自动生成；可取消注释 \verb|\listoffigures|、\verb|\listoftables| \\
-    正文     & \verb|\mainmatter|       & 页码切换为阿拉伯数字，从1重新开始 \\
-    参考文献 & \verb|\makereferences|   & 自动排版，格式符合 GB/T 7714 \\
-    附录     & \verb|\appendix|         & 新增「附录」章页，节编号为 A、B、C（\verb|appendix.tex|） \\
-    谢辞     & \verb|\backmatter|       & 取消章编号，页码继续（\verb|ack.tex|） \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+第三章需求分析，对系统的功能需求和非功能需求进行分析，包括用户管理模块、拼车服务模块、社区交流模块、公共交通信息模块以及聊天与通知模块，并进行系统总体需求概述和可行性分析，为系统设计提供明确需求基础。
 
-正文各章放在 \verb|chapters/| 下，通过 \verb|main.tex| 中的 \verb|\input{chapters/XX_name}| 注册；参考文献数据库文件在导言区通过 \verb|\tjbibresource{bib/note.bib}| 指定，支持逗号分隔的多个文件。
+第四章系统设计，详细描述系统总体架构、模块设计及数据库设计，同时说明各功能模块接口设计，重点说明模块间的协作机制和数据交互关系，为系统实现提供设计依据。
 
-\section{常用命令速查}
+第五章系统实现，阐述系统前端与后端的具体实现方法，介绍拼车匹配算法的设计与实现过程。
 
-\tabref{tab:template-commands}列出了本模板提供的常用命令，具体用法在后续各章中演示。
+第六章系统测试，对系统进行单元测试、集成测试以及系统测试，验证系统的正确性、稳定性和可用性，为系统的实际应用提供可靠性保证。
 
-\begin{table}[htbp]
-  \centering
-  \caption{模板常用命令}\label{tab:template-commands}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{lp{9cm}}
-    \toprule
-    \textbf{命令} & \textbf{用途} \\
-    \midrule
-    \multicolumn{2}{l}{\textbf{交叉引用}} \\
-    \verb|\cref{label}|           & 智能引用，自动生成“第~X~章”“图~X”“式~(X)”等 \\
-    \verb|\chapref{label}|        & 引用章：第~X~章 \\
-    \verb|\secref{label}|         & 引用节：第~X~节 \\
-    \verb|\figref{label}|         & 引用图：图~X \\
-    \verb|\tabref{label}|         & 引用表：表~X \\
-    \verb|\eqref{label}|          & 引用公式：式~(X) \\
-    \midrule
-    \multicolumn{2}{l}{\textbf{参考文献}} \\
-    \verb|\tjbibresource{file}|   & 导言区指定 \texttt{.bib} 文件 \\
-    \verb|\makereferences|        & 输出参考文献列表 \\
-    \verb|\cite{key}|             & 上标引用 \\
-    \midrule
-    \multicolumn{2}{l}{\textbf{排版辅助}} \\
-    \verb|\pkg{name}|             & 排版宏包名称（带 CTAN 链接） \\
-    \verb|\cs{name}|              & 排版命令名称（如 \cs{section}） \\
-    \verb|\Circled{n}|            & 带圈数字：\Circled{1} \Circled{2} \Circled{3} \\
-    \verb|\TongjiThesis|            & 项目 Logo：\TongjiThesis \\
-    \verb|\dd|, \verb|\ee|, \verb|\ii|, \verb|\jj| & 直立体微分 $\dd$、自然对数底 $\ee$、虚数单位 $\ii$、$\jj$ \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+第七章总结与展望，对本文的研究工作进行总结，分析系统不足，并提出未来优化和扩展方向，为后续研究提供参考。

@@ -1,232 +1,440 @@
-\chapter{数学公式与符号}\label{chap:math}
+\chapter{系统设计}\label{chap:design}
 
-本章展示数字格式化、单位排版、数学公式以及定理环境等功能的使用方法。
+\section{系统总体架构设计}
 
-\section{数字和单位}
+本系统采用典型的分层架构设计模式，自上而下划分为表现层、接口层、业务逻辑层以及数据存储层，各层职责明确，形成高内聚、低耦合的系统结构，便于开发维护与功能扩展。系统总体架构如\figref{fig:system-architecture}所示。
 
-\subsection{数字格式化}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{figures/fig-4-1-system-architecture.png}
+  \caption{系统总体架构图}
+  \label{fig:system-architecture}
+\end{figure}
 
-数字可以使用 \verb|\num{}| 命令进行格式化，例如：
+表现层由微信小程序构成，是用户直接交互的界面层。该层承担所有校园出行相关信息的呈现、操作输入及交互响应，包括班车信息查询、拼车信息发布与匹配、社区交流及即时消息功能。表现层通过界面组件和数据绑定将系统提供的功能直观呈现给用户，同时负责初步数据验证，如表单输入检查、日期和时间范围校验等，以减轻后端负担。通过良好的界面设计与用户体验优化，表现层实现了信息展示的直观性和操作的便捷性，使用户能够快速获取所需的出行服务。
 
-\begin{itemize}
-  \item \num{12345272.42146}：显示长数字。
-  \item \num{9+-3i}：显示复数。
-  \item \num{9.624 x 8.18 x 1.745}：显示乘积表达式。
-  \item \num{1.234567e8}：以科学计数法显示数字。
-  \item \num{-19.7}：显示负号。
-  \item \num{3.2d-5}：显示数字和指数，使用小写的 d 来指示指数。
-  \item \num{1.234(5)}：显示带有不确定度的数字。数字后的括号内的数字表示数字的不确定度，本例中为 5。
-  \item \num[parse-numbers=false]{\$19,456.82}：显示一个货币金额，并将其解释为一个字符串，而不是数字。
-\end{itemize}
+接口层位于表现层与业务逻辑层之间，是前后端通信的桥梁。该层通过统一的RESTful API规范，将前端的请求准确路由至对应的业务模块，同时负责用户身份认证、权限校验和请求参数的初步处理，确保每一次操作均在合法范围内执行。接口层通过标准化的数据交换格式返回处理结果，既保证了前端调用的简便性，也为后端服务的独立部署和模块扩展提供了支持。接口层还承担日志记录与异常捕获功能，对请求流程进行监控，为系统维护和故障排查提供依据。
 
-\subsection{单位格式化}
+业务逻辑层是系统的核心部分，由Spring Boot微服务组成，包括用户管理、拼车服务、社区交流、公共交通信息以及聊天与通知五大功能模块。用户管理模块负责用户注册、登录、信息维护以及信用分管理，保障身份认证的安全性和用户数据的一致性；拼车服务模块是系统的核心，通过二层匹配算法和基于随机森林的推荐机制，对用户发布的拼车信息进行智能筛选和排序，提升拼车成功率，同时实现行程全生命周期管理，包括发布、申请、审批、行程完成及反馈统计；社区交流模块实现帖子管理、评论互动和搜索功能，为校园用户提供信息交流和经验分享平台；公共交通信息模块集中管理校内班车及北安跨线公交数据，为用户提供准确、及时的出行参考；聊天与通知模块则提供即时消息服务和会话管理功能，保证用户间的高效沟通。业务逻辑层在处理业务流程时，严格遵循系统规则，实现数据校验、事务管理和算法计算，为前端提供可靠的操作接口。
 
-单位可以使用 \verb|\si{}| 命令进行格式化，例如：
+数据存储层负责系统的数据持久化管理，采用MySQL和MongoDB混合方案。MySQL用于存储结构化数据，如用户信息、拼车订单和行程反馈等，以确保事务的一致性和完整性；MongoDB用于管理非结构化数据，如社区帖子、评论以及聊天消息，适应数据格式多样性和高并发访问需求。数据存储层的设计充分考虑校园出行场景下的数据需求，通过这种混合方案保证系统稳定运行。
 
-\begin{itemize}
-  \item \si{kg.m.s^{-1}}：显示物理量的单位。
-  \item \si{\pico\meter} $\si{\pico\meter}$：显示物理量的单位，可以添加前缀。
-  \item \si{\tesla} $\si{\tesla}$：显示物理量的单位。
-  \item \si{\ampere\per\meter\squared}：显示物理量的单位，并使用 \verb|\per| 命令来显示单位的分数形式。
-  \item \si[per-mode=fraction]{\coulomb\per\mole}：显示物理量的单位，并使用分数形式显示单位，而不是使用倒数形式。
-  \item \si{\kilo\hertz}：显示带有前缀的单位。
-  \item \SI{2.5}{\kilo\volt\per\milli\meter}：显示物理量的值和单位，其中值为 2.5，单位为 \si{\kilo\volt\per\milli\meter}。
-  \item \SI{12}{\degree}：显示一个角度值，单位为度。
-\end{itemize}
+通过上述分层设计，系统在保证功能完整性的同时实现了清晰的层次结构和模块职责划分。表现层专注用户体验，接口层保障数据交互安全可靠，业务逻辑层处理复杂的业务流程与算法计算，数据存储层提供高效稳定的数据管理支持。各层协同工作，使校内综合交通平台在高并发访问环境下仍能保持良好的性能与扩展性，为系统的持续优化和功能扩展提供了坚实基础。
 
-\subsection{数字和单位组合}
+\section{系统模块设计}
 
-数字和单位可以组合起来使用，例如：
+系统模块设计以校园综合交通场景为核心，采用微服务架构将各项功能进行独立封装与逻辑划分。模块之间通过RESTful接口进行数据交互，各模块职责明确、内聚性高，同时保证系统可扩展性和维护性。本系统主要划分为用户管理、拼车服务、社区交流、聊天与通知以及公共交通信息五大模块。
 
-\begin{itemize}
-  \item \SI{0.5}{\metre\cubed}：显示物理量的值和单位。
-  \item \SI{5.5}{\micro\second}：显示物理量的值和单位。
-  \item \SI{2.3}{\mega\joule\per\kelvin}：显示物理量的值和单位。
-\end{itemize}
+\subsection{用户管理模块}
 
-\subsection{数字和单位列表}
+用户管理模块是系统的基础模块，主要负责用户身份认证、个人信息维护以及信用统计管理。用户管理模块内部主要由控制层、业务层、数据访问层及工具类协同完成，其核心类关系如\figref{fig:user-class-diagram}所示。
 
-数字和单位列表可以使用以下命令进行格式化：
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/fig-4-2-user-class-diagram.png}
+  \caption{用户管理模块类图}
+  \label{fig:user-class-diagram}
+\end{figure}
 
-\begin{itemize}
-  \item \numlist{95;36}：显示数字列表，其中数字之间用分号隔开。
-  \item \numlist{52;74;59}：显示数字列表，其中数字之间用分号隔开。
-  \item \SIlist{0.53;0.74;0.99}{\milli\metre}：显示带有单位的数字列表，其中数字之间用分号隔开。
-\end{itemize}
+在校园出行场景中，用户是所有业务流程的核心，系统通过微信授权实现登录验证，确保用户身份的安全可靠。同时，该模块提供个人资料管理功能，包括昵称、头像、联系方式等信息更新和查询，使用户能够维护完整的个人档案。
 
-\subsection{数字和单位范围}
+为了支持拼车业务的信用体系，用户管理模块记录用户参与拼车的总次数、完成率及迟到率等指标，并在行程完成后根据反馈数据更新信用分和相关统计信息。模块设计强调数据的完整性和一致性，通过逻辑约束和接口调用保证用户信息在系统中各模块间的可访问性和实时性。
 
-数字和单位范围可以使用以下命令进行格式化：
+\subsection{拼车服务模块}
 
-\begin{itemize}
-  \item \numrange{65}{1284}：显示数字范围，其中数字用短横线隔开。
-  \item \SIrange{58}{1024}{\degreeCelsius}：显示带有单位的数字范围。
-\end{itemize}
+拼车服务模块是系统核心功能模块，负责实现拼车信息的发布、查询、匹配、申请管理以及行程反馈。模块内部设计围绕拼车完整生命周期展开，从用户发布拼车需求开始，到其他用户提交加入申请，车主审批，再到行程完成及反馈统计，形成闭环业务流程。
 
-以上是一些常见的使用示例，宏包 \pkg{siunitx} 还提供了许多其他选项和命令，可以根据需要进行自定义设置。
+为提高拼车匹配效率，模块引入二层匹配机制和基于随机森林算法的推荐策略，通过分析用户历史出行记录、信用分、路线匹配度及时间偏好，实现智能排序与个性化推荐。在行程完成后，模块提供评价接口用于更新用户信用及成功率统计，从而形成动态调整的信用体系。模块内部逻辑严格控制订单状态、座位数量及申请审批流程，确保业务操作的准确性和一致性。
 
-\section{数学符号和公式}
+拼车服务模块涉及订单、申请、反馈及外部协同组件等多个对象，其核心类关系如\figref{fig:carpool-class-diagram}所示。
 
-按照国标 GB/T 3102.11—1993《物理科学和技术中使用的数学符号》，
-微分符号 $\dd$ 应使用直立体。除此之外，数学常数也应使用直立体：
-\begin{itemize}
-  \item 微分符号 $\dd$：\cs{dd}
-  \item 圆周率 $\uppi$：\cs{uppi}
-  \item 自然对数的底 $\ee$：\cs{ee}
-  \item 虚数单位 $\ii$, $\jj$：\cs{ii} \cs{jj}
-\end{itemize}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/fig-4-3-carpool-class-diagram.png}
+  \caption{拼车服务模块类图}
+  \label{fig:carpool-class-diagram}
+\end{figure}
 
-公式应另起一行居中排版。公式后应注明编号，按章顺序编排，编号右端对齐。
-\begin{equation}\label{eq:harmonic-oscillator}
-  \frac{\dd^2}{\dd t^2}x(t)+\omega^2x(t)=\sin(t).
-\end{equation}
-如\cref{eq:harmonic-oscillator}~所示，这是一个受迫谐振子的运动方程。
-\begin{equation}
-  \frac{\partial^2u}{\partial t^2}=\frac{\partial^2u}{\partial x^2}+\frac{\partial^2u}{\partial y^2}.
-\end{equation}
+从\figref{fig:carpool-class-diagram}可以看出，拼车服务模块以订单实体为中心，通过申请实体和反馈实体扩展完整业务流程，并通过用户服务调用组件和模型服务调用组件实现跨服务协同。在业务交互层面，用户申请加入拼车订单时的核心对象调用顺序如\figref{fig:application-sequence}所示。
 
-公式末尾是需要添加标点符号的，至于用逗号还是句号，取决于公式下面一句是接着公式说的，还是另起一句。
-\begin{equation}
-  \sum_{n=1}^{\infty}\frac{\cos(nx)}{n^2}=\frac{\uppi^2}{6}-\frac{x^2}{4}
-\end{equation}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{figures/fig-4-4-application-sequence.png}
+  \caption{拼车申请处理时序图}
+  \label{fig:application-sequence}
+\end{figure}
 
-公式较长时最好在等号“$=$”处转行。可使用 \texttt{align} 环境实现多行对齐，用 \verb|&| 指定对齐位置，用 \verb|\nonumber| 抑制某行的编号。
-\begin{align}
-       & I(X_1;X_2)-I(X_1;X_2|X_3) \nonumber    \\
-  =    & H(X_2)-H(X_2|X_3) \nonumber            \\
-  =    & H(X_2,X_3)-H(X_3)-H(X_2|X_3) \nonumber \\
-  =    & I(X_2;X_3)-I(X_2;X_3|X_1) \nonumber    \\
-  =    & I(X_2;X_3,X_1) \nonumber               \\
-  \geq & 0.
-\end{align}
+该时序图体现了拼车申请在控制层、业务层和数据访问层之间的调用顺序，也说明了系统在申请校验、重复判断和数据保存方面的处理逻辑。拼车匹配查询是系统核心业务之一，其在规则筛选与模型排序阶段的对象交互过程如\figref{fig:matching-sequence}所示。
 
-如果在等号处转行难以实现，也可在 $+$、$-$、$\times$、$\div$ 运算符号处转行，转行时运算符号仅书写于转行式前，不重复书写。可以使用 \texttt{multline} 环境排版超长单行公式，第一行左对齐，最后一行右对齐。
-\begin{multline}
-  \frac{1}{2} \Delta (f_{ij} f^{ij}) =
-  2 \left(\sum_{i<j} \chi_{ij}(\sigma_{i} - \sigma_{j})^{2}
-  + f^{ij} \nabla_{j} \nabla_{i} (\Delta f)  + \nabla_{k} f_{ij} \nabla^{k} f^{ij} +
-  f^{ij} f^{k} \left[2\nabla_{i}R_{jk}- \nabla_{k} R_{ij} \right] \vphantom{\sum_{i<j}} \right) \\
-  - 3H^{2}\left[1+\frac{\dot{\phi}}{2H^2}\right] - \frac{\dot{\phi}^{2}}{2} - \frac{k}{a^{2}}\phi^{2} - \frac{1}{2}\left(\frac{\partial\phi}{\partial t}\right)^{2} + \frac{a^2}{2}\left(\frac{\partial\phi}{\partial x}\right)^{2}
-  + \frac{1}{4}\lambda\phi^{4} + \frac{\beta}{3}\phi^{3} \\
-  -\frac{1}{2}\mu^{2}\phi^{2}(\ln{\phi^{2}} - c)
-  + \frac{e^{2}}{2}\left(\frac{\partial A_{\mu}}{\partial t}\right)^{2} - \frac{e^{2}}{2}\left(\frac{\partial A_{\mu}}{\partial x}\right)^{2}
-  - e^{2}\phi^{2}A_{\mu}A^{\mu} + \frac{1}{4}F_{\mu\nu}F^{\mu\nu}.
-\end{multline}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/fig-4-5-matching-sequence.png}
+  \caption{拼车匹配查询时序图}
+  \label{fig:matching-sequence}
+\end{figure}
 
-\subsection{矩阵}
+由\figref{fig:matching-sequence}可见，系统在接收查询请求后，先完成候选订单筛选和特征计算，再对高质量结果调用模型服务进行排序，从而体现出拼车匹配业务的二层处理机制。
 
-矩阵是理工科论文中的常见元素，可使用 \texttt{pmatrix}（圆括号）、\texttt{bmatrix}（方括号）和 \texttt{vmatrix}（行列式）等环境排版：
-\begin{equation}
-  \mathbf{A} = \begin{pmatrix}
-    a_{11} & a_{12} & \cdots & a_{1n} \\
-    a_{21} & a_{22} & \cdots & a_{2n} \\
-    \vdots & \vdots & \ddots & \vdots \\
-    a_{m1} & a_{m2} & \cdots & a_{mn}
-  \end{pmatrix}, \quad
-  \det(\mathbf{A}) = \begin{vmatrix}
-    a_{11} & a_{12} \\
-    a_{21} & a_{22}
-  \end{vmatrix} = a_{11}a_{22} - a_{12}a_{21}.
-\end{equation}
+\subsection{社区交流模块}
 
-\subsection{分段函数}
+社区交流模块为校园用户提供信息交流和经验分享的平台。模块主要支持帖子发布、评论互动及点赞功能，同时允许上传多媒体附件以增强信息表达能力。模块设计充分考虑校园社交需求，通过高效的内容存储与检索机制，实现帖子及评论的快速展示和分页加载。
 
-分段函数可使用 \texttt{cases} 环境排版：
-\begin{equation}\label{eq:piecewise}
-  f(x) = \begin{cases}
-    x^2,   & x \geq 0, \\
-    -x^2,  & x < 0.
-  \end{cases}
-\end{equation}
+模块内部通过逻辑约束保证用户对内容的操作权限，例如用户只能删除自己发布的帖子或评论，点赞操作可切换状态而不产生重复记录。模块还设计了统计字段用于快速显示点赞数和评论数量，提高列表页面的响应效率。整个模块的设计旨在增强用户互动体验，同时保持数据结构的灵活性和可扩展性。
 
-\section{定理环境}
+\subsection{聊天与通知模块}
 
-定理环境是数学领域中常用的一种环境类型，用于表述和证明各种数学定理、推论、引理等。在 \LaTeX\ 中，我们可以通过定义定理环境来方便地排版定理等内容，使其在文档中具有更加统一的风格和格式。
+聊天与通知模块提供用户之间的即时通信功能，系统以单聊功能为主，并预留群聊扩展接口。模块实现了会话管理、消息发送与接收、已读标记及删除操作，同时为群聊提供成员管理功能。
 
-在本章中，我们展示了一些常用的定理环境，包括定理、推论、引理、命题、猜想、假设、定义、例、注等。这些环境的具体样式可以通过修改定理环境的定义进行自定义。此外，我们还展示了定理证明环境，用于证明各种定理和结论。在定理证明环境中，我们可以使用各种数学符号和公式，方便地展示证明过程，使读者更加易于理解。
+模块内部采用嵌套文档结构存储会话成员信息和消息状态，使每条消息可以维护不同用户的已读和删除状态。在校园出行场景中，该模块确保乘客与车主之间、用户之间的即时沟通，支持跨模块通知，如拼车申请结果和行程反馈提示。模块设计注重实时性与数据一致性，通过业务逻辑控制保证消息状态的准确性和可靠性。
 
-\begin{thm}\label{thm:infinite-primes}
-  素数有无穷多个。
-\end{thm}
+\subsection{公共交通信息模块}
 
-\begin{proof}
-  假设素数只有有限个，记为 $p_1, p_2, \dots, p_n$。令 $N = p_1 p_2 \cdots p_n + 1$，则 $N > 1$，且 $N$ 除以任何 $p_i$ 都余 $1$，因此 $N$ 不能被任何 $p_i$ 整除。但 $N$ 必有素因子，该素因子不在 $p_1, \dots, p_n$ 中，与假设矛盾。故素数有无穷多个。
-\end{proof}
+公共交通信息模块提供校内班车及北安跨线公交信息查询服务，为用户出行提供基础数据支持。模块存储和管理完整的班车线路、时刻表及区段信息，并提供接口以查询最近发车时间或整条线路的完整时刻表。通过结构化数据存储和标准化接口，公共交通信息模块为用户提供准确、及时的出行参考，同时为拼车服务模块提供基础数据支持，增强系统整体的可用性和用户体验。
 
-以上通过\cref{thm:infinite-primes}~展示了定理与证明环境的基本用法。
+\section{数据库设计}
 
-\begin{cor}
-  如果 $a$ 和 $b$ 是正实数，则 $a+b \geq 2\sqrt{ab}$。
-\end{cor}
+本系统面向校园综合交通服务场景，采用MySQL与MongoDB结合的混合持久化方案。系统中用户身份、拼车订单、拼车申请及拼车反馈等数据具有明确的业务状态、强约束关系和事务一致性要求，因此使用MySQL存储；而论坛帖子、评论、聊天会话、聊天消息、文件记录以及公共交通时刻表等数据结构相对灵活，包含数组、嵌套对象、附件及用户状态信息，因此使用MongoDB存储。
 
-\begin{proof}
-  我们可以使用平均数不小于几何平均数这个不等式来证明。具体地，我们有：
-  \begin{align*}
-    \sqrt{ab}              & \leq \frac{a+b}{2} \\
-    \Rightarrow 2\sqrt{ab} & \leq a+b
-  \end{align*}
-  因此，$a+b \geq 2\sqrt{ab}$，定理成立。
-\end{proof}
+具体设计中，MySQL主要承载结构化、强一致性的核心业务数据，包括用户服务（User）和拼车服务（Carpool）；MongoDB则承载内容型、消息型和半结构化数据，包括论坛服务（Forum）、聊天服务（Chat）、文件服务（Document）和公共交通服务（Transport）。这种混合方案既保证了拼车业务中座位数量、申请状态和评价统计等关键数据的可靠性，也提高了论坛和聊天等内容数据在字段扩展、嵌套存储和高频读写场景下的灵活性。
 
-\begin{lem}
-  设 $f$ 是一个在 $[a,b]$ 上的可微函数，则 $f$ 在 $[a,b]$ 上一定有一点使得 $f'(x) = \frac{f(b)-f(a)}{b-a}$。
-\end{lem}
+\begin{table}[!htbp]
+  \caption{系统所用数据库}
+  \label{tab:system-database}
+  \centering
+  \begin{tabular}{p{2.2cm}p{3.5cm}p{7.2cm}}
+    \toprule
+    数据库 & 使用模块 & 主要数据类型 \\
+    \midrule
+    MySQL & User、Carpool & 用户基础信息、用户信用统计、拼车订单、拼车申请、拼车反馈 \\
+    MongoDB & Forum、Chat、Document、Transport & 帖子、评论、点赞、聊天会话、聊天消息、文件记录、交通时刻表 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\begin{proof}
-  定义辅助函数 $g(x) = f(x) - \frac{f(b)-f(a)}{b-a}(x-a)$。易验证 $g(a) = f(a)$，$g(b) = f(b) - (f(b)-f(a)) = f(a)$，故 $g(a) = g(b)$。由罗尔定理，存在 $c \in (a,b)$ 使得 $g'(c) = 0$，即
-  \begin{equation*}
-    f'(c) - \frac{f(b)-f(a)}{b-a} = 0,
-  \end{equation*}
-  因此 $f'(c) = \frac{f(b)-f(a)}{b-a}$，定理得证。
-\end{proof}
+\subsection{MySQL数据库设计}
 
-\begin{prop}
-  设 $f$ 和 $g$ 是两个单调递增的函数，则 $f+g$ 也是一个单调递增函数。
-\end{prop}
+系统的MySQL数据库用于存储核心业务数据，包括用户信息和拼车相关业务数据。数据库设计遵循微服务架构原则，每个微服务拥有独立数据库，以保证服务独立性和扩展性。具体来说，User微服务管理用户身份、资料及信用统计信息，而Carpool微服务管理拼车订单、申请及反馈信息。在数据库层面，用户表和拼车相关表之间没有外键约束，其逻辑关联通过应用层接口调用实现。
 
-\begin{proof}
-  我们需要证明对于任意的 $x,y \in \mathbb{R}$，如果 $x < y$，则 $f(x)+g(x) < f(y)+g(y)$。由于 $f$ 和 $g$ 都是单调递增的，所以有 $f(x) < f(y)$ 和 $g(x) < g(y)$，于是 $f(x)+g(x) < f(y)+g(x) < f(y)+g(y)$。因此，$f+g$ 是单调递增的，定理得证。
-\end{proof}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{figures/fig-4-6-mysql-er.png}
+  \caption{MySQL数据库核心业务表ER图}
+  \label{fig:mysql-er}
+\end{figure}
 
-\begin{conj}
-  （孪生素数猜想）存在无穷多对素数 $(p, p+2)$，使得 $p$ 和 $p+2$ 均为素数。例如 $(3,5)$、$(5,7)$、$(11,13)$、$(17,19)$ 等。该猜想至今尚未被证明。
-\end{conj}
+ER图显示了用户表与拼车订单、申请及反馈表的逻辑关系。在实际数据库中，各表独立存储，ER图主要用于说明业务逻辑关联和数据流向。
 
-\begin{assume}
-  假设 $A$ 和 $B$ 是两个集合，则它们的笛卡尔积 $A \times B$ 的基数为 $|A| \cdot |B|$。
-\end{assume}
+\begin{table}[!htbp]
+  \caption{用户表}
+  \label{tab:users-table}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    id & BIGINT & 用户主键，自增 \\
+    openID & VARCHAR & 微信OpenID，唯一标识用户 \\
+    unionID & VARCHAR & 微信UnionID \\
+    nickname & VARCHAR & 用户昵称 \\
+    avatarUrl & VARCHAR & 用户头像地址 \\
+    phoneNumber & VARCHAR & 手机号 \\
+    email & VARCHAR & 邮箱 \\
+    user\_credit & DOUBLE & 用户信用评分，默认1.0 \\
+    success\_rate & DOUBLE & 拼车完成率，默认1.0 \\
+    late\_rate & DOUBLE & 迟到率，默认0 \\
+    total\_trips & INT & 参与拼车总次数 \\
+    completed\_trips & INT & 成功完成拼车次数 \\
+    late\_trips & INT & 迟到次数 \\
+    role & VARCHAR & 用户角色，默认USER \\
+    status & VARCHAR & 用户状态，默认ACTIVE \\
+    createdAt & DATETIME & 创建时间 \\
+    updatedAt & DATETIME & 更新时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\begin{proof}
-  我们需要证明 $|A \times B| = |A| \cdot |B|$。我们可以使用等势关系来证明，即构造一个双射 $f: A \times B \rightarrow \left\{1,2,\dots,|A| \cdot |B|\right\}$。具体地，我们可以按照以下方式定义 $f$：
-  \begin{equation}
-    f(a,b)=(a-1)\cdot |B|+b
-  \end{equation}
-  其中 $a \in A$，$b \in B$。显然，$f$ 是一个双射，因为每个元素 $(a,b)$ 都对应着唯一的自然数 $(a-1) \cdot |B| + b$，而每个自然数也都可以唯一地表示为 $(a-1) \cdot |B| + b$ 的形式。因此，$A \times B$ 和 $\left\{1,2,\dots,|A| \cdot |B|\right\}$ 等势，即它们有相同的基数，定理得证。
-\end{proof}
+\begin{table}[!htbp]
+  \caption{拼车订单表}
+  \label{tab:carpool-order-table}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    id & BIGINT & 拼车订单主键，自增 \\
+    userId & BIGINT & 发布订单的用户ID \\
+    startLocation & VARCHAR & 出发地点 \\
+    endLocation & VARCHAR & 目的地点 \\
+    date & DATE & 拼车日期 \\
+    startTime & TIME & 期望开始时间 \\
+    endTime & TIME & 期望结束时间 \\
+    seatsTotal & INT & 总座位数 \\
+    seatsUsed & INT & 已占用座位数 \\
+    status & VARCHAR & 订单状态，OPEN、COMPLETED、DELETED \\
+    completedAt & DATETIME & 订单完成时间 \\
+    createdAt & DATETIME & 创建时间 \\
+    updatedAt & DATETIME & 更新时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\begin{dfn}
-  一个有向无环图是拓扑排序的，当且仅当它的所有顶点都可以按照某个顺序进行编号，使得对于任意一条有向边 $(u,v)$，$u$ 的编号都小于 $v$ 的编号。
-\end{dfn}
+\begin{table}[!htbp]
+  \caption{拼车申请表}
+  \label{tab:carpool-application-table}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    id & BIGINT & 主键，自增 \\
+    order\_id & BIGINT & 对应拼车订单ID \\
+    user\_id & BIGINT & 申请用户ID \\
+    status & VARCHAR & 申请状态，WAIT、PASS、REFUSE \\
+    reason & VARCHAR & 拒绝原因或说明 \\
+    createdAt & DATETIME & 创建时间 \\
+    updatedAt & DATETIME & 更新时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\begin{exmp}
-  考虑一个任务调度问题，其中有 $n$ 个任务需要按照一定的顺序执行。如果任务之间存在依赖关系，即某些任务必须在其他任务执行完毕之后才能开始执行，那么我们可以将这些任务和它们之间的依赖关系表示成一个有向无环图，并通过拓扑排序来确定任务的执行顺序。
-\end{exmp}
+\begin{table}[!htbp]
+  \caption{拼车反馈表}
+  \label{tab:carpool-feedback-table}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    id & BIGINT & 主键，自增 \\
+    order\_id & BIGINT & 对应拼车订单ID \\
+    reviewer\_user\_id & BIGINT & 评价人用户ID \\
+    target\_user\_id & BIGINT & 被评价人用户ID \\
+    score & DOUBLE & 评分，0\textasciitilde1 \\
+    late & BOOLEAN & 是否迟到 \\
+    completed & BOOLEAN & 是否完成拼车 \\
+    createdAt & DATETIME & 评价创建时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\begin{rem}
-  在数学中，定义和定理是数学推理的基础，而引理和命题则通常作为定理证明的中间步骤。而且在数学研究中，猜想和猜测往往需要大量的证明和反证，才能得到确定的结论。
-\end{rem}
+通过上述设计，系统在保证核心拼车业务数据强一致性和事务完整性的同时，实现了微服务之间的独立性和可扩展性。MySQL数据库通过主键索引和联合唯一约束支持高效查询与数据约束，并通过应用层控制实现逻辑外键和事务一致性。
 
-\begin{thm}
-  对于任意正整数 $n$，有 $\displaystyle\sum_{i=1}^n i = \frac{n(n+1)}{2}$。
-\end{thm}
+\subsection{MongoDB数据库设计}
 
-\begin{proof}
-  设 $n$ 是任意正整数，则存在一个双射 $f: \left\{1,2,\dots,n\right\} \rightarrow \left\{n,n-1,\dots,1\right\}$，即将 $\left\{1,2,\dots,n\right\}$ 中的元素按照相反的顺序重新编号，使得 $f(i) = n-i+1$。因此，我们有：
-  \begin{align*}
-    \sum_{i=1}^n i & = 1 + 2 + \cdots + (n-1) + n           \\
-                   & = f(1) + f(2) + \cdots + f(n-1) + f(n) \\
-                   & = (n+1) \cdot \frac{n}{2}              \\
-                   & = \frac{n(n+1)}{2}
-  \end{align*}
-  因此，定理成立。
-\end{proof}
+本系统使用MongoDB存储内容型和消息型数据，包括论坛帖子与评论、聊天会话与消息、文件记录以及公共交通时刻表。MongoDB的文档模型灵活，适合存储嵌套对象、数组及可变字段，使数据模型更贴合实际业务需求。
+
+\begin{table}[!htbp]
+  \caption{帖子集合}
+  \label{tab:posts-collection}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    \_id & ObjectId & 文档主键 \\
+    userId & String & 发帖用户ID \\
+    title & String & 帖子标题 \\
+    content & String & 帖子正文 \\
+    attachments & Array & 附件列表，每项包含文件地址、类型和上传时间 \\
+    tags & Array & 帖子标签 \\
+    likes & Int & 点赞数 \\
+    commentsCount & Int & 评论数 \\
+    createdAt & Date & 创建时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \caption{评论集合}
+  \label{tab:comments-collection}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    \_id & ObjectId & 文档主键 \\
+    postId & ObjectId & 所属帖子ID \\
+    userId & String & 评论用户ID \\
+    parentCommentId & ObjectId & 上级评论ID（楼中楼回复） \\
+    content & String & 评论内容 \\
+    attachments & Array & 评论附件 \\
+    likes & Int & 点赞数 \\
+    createdAt & Date & 创建时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \caption{聊天会话集合}
+  \label{tab:chat-collection}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    \_id & ObjectId & 文档主键 \\
+    participants & Map & 成员信息（昵称、头像、加入时间、免打扰状态） \\
+    lastUpdated & Date & 最近消息更新时间 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \caption{聊天消息集合}
+  \label{tab:message-collection}
+  \centering
+  \small
+  \begin{tabular}{p{3.0cm}p{2.3cm}p{7.0cm}}
+    \toprule
+    字段名 & 类型 & 含义 \\
+    \midrule
+    \_id & ObjectId & 文档主键 \\
+    chatId & ObjectId & 所属会话ID \\
+    senderId & String & 发送者ID \\
+    type & String & 消息类型（TEXT、IMAGE、FILE） \\
+    content & String & 消息内容或文件地址 \\
+    timestamp & Date & 发送时间 \\
+    userStatuses & Map & 用户状态（isRead、isDeleted、readAt） \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{接口设计}
+
+本系统接口设计遵循RESTful风格，统一采用“/api/\{module\}/\{action\}”的路径规范，通过HTTP方法区分操作类型。接口数据交互统一采用JSON格式，并采用标准化返回结构，以保证系统的可扩展性与前后端协作的一致性。根据系统功能划分，接口设计主要包括用户模块、论坛模块、拼车模块、聊天模块以及交通模块五个部分。
+
+\subsection{用户模块接口设计}
+
+用户模块负责管理系统的用户身份、个人信息以及与拼车服务相关的信用统计信息。在校园综合交通场景中，用户是所有业务流程的核心，用户模块接口不仅保证身份认证的安全性，还为其他模块提供统一的用户信息访问和操作入口。通过接口设计，系统能够实现用户登录状态的管理、个人资料的更新与查询、系统通知的获取以及拼车相关行为数据的统计，从而支撑平台的完整功能。
+
+\begin{table}[!htbp]
+  \caption{用户模块接口}
+  \label{tab:user-api}
+  \centering
+  \small
+  \begin{tabular}{p{1.6cm}p{4.6cm}p{6.2cm}}
+    \toprule
+    方法 & 接口路径 & 功能说明 \\
+    \midrule
+    POST & /api/user/login & 微信授权登录，获取用户身份信息 \\
+    GET & /api/user/getProfile & 获取当前用户个人资料 \\
+    PUT & /api/user/updateProfile & 更新用户基本信息（头像、昵称等） \\
+    GET & /api/user/getNotices & 获取系统通知列表 \\
+    PUT & /api/user/updateCarpoolStats & 更新用户拼车信用、成功率、迟到率 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{论坛模块接口设计}
+
+论坛模块接口主要支持校园用户之间的信息发布与互动交流。系统提供帖子列表查询与详情查看接口，实现对帖子数据的分页加载与精细化展示，满足用户浏览需求。
+
+\begin{table}[!htbp]
+  \caption{论坛模块接口}
+  \label{tab:forum-api}
+  \centering
+  \small
+  \begin{tabular}{p{1.6cm}p{4.6cm}p{6.2cm}}
+    \toprule
+    方法 & 接口路径 & 功能说明 \\
+    \midrule
+    GET & /api/forum/listPosts & 获取帖子列表（支持分页） \\
+    GET & /api/forum/getPostDetail & 获取帖子详细信息 \\
+    POST & /api/forum/createPost & 发布帖子（支持图片） \\
+    DELETE & /api/forum/deletePost & 删除帖子 \\
+    POST & /api/forum/setPostLike & 点赞或取消点赞 \\
+    GET & /api/forum/listComments & 获取评论列表 \\
+    POST & /api/forum/createComment & 发布评论 \\
+    DELETE & /api/forum/deleteComment & 删除评论 \\
+    GET & /api/forum/listUserPosts & 获取用户发布的帖子 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{拼车模块接口设计}
+
+拼车模块是平台的核心业务模块，支持拼车信息的发布、申请、匹配和行程管理。接口设计围绕完整的拼车生命周期展开，包括发布拼车、匹配推荐、申请管理以及行程完成后的反馈统计。
+
+\begin{table}[!htbp]
+  \caption{拼车模块接口}
+  \label{tab:carpool-api}
+  \centering
+  \small
+  \begin{tabular}{p{1.6cm}p{4.6cm}p{6.2cm}}
+    \toprule
+    方法 & 接口路径 & 功能说明 \\
+    \midrule
+    GET & /api/carpool/listOrders & 查询拼车列表（含模型排序推荐） \\
+    GET & /api/carpool/getOrderDetail & 获取拼车详情 \\
+    POST & /api/carpool/createOrder & 发布拼车信息 \\
+    DELETE & /api/carpool/deleteOrder & 删除拼车 \\
+    POST & /api/carpool/createApplication & 提交拼车申请 \\
+    GET & /api/carpool/getApplicationStatus & 查询申请状态 \\
+    GET & /api/carpool/listOrderApplications & 获取某拼车的申请列表 \\
+    POST & /api/carpool/approveApplication & 车主通过申请 \\
+    POST & /api/carpool/rejectApplication & 车主拒绝申请 \\
+    DELETE & /api/carpool/deleteApplication & 撤销拼车申请 \\
+    GET & /api/carpool/listUserOrders & 获取我发布的拼车 \\
+    GET & /api/carpool/listJoinedOrders & 获取我参与的拼车 \\
+    POST & /api/carpool/completeOrder & 标记拼车行程完成 \\
+    GET & /api/carpool/listFeedbackTargets & 获取待评价对象 \\
+    POST & /api/carpool/submitFeedback & 提交拼车评价并更新信用 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{聊天模块接口设计}
+
+聊天模块接口用于实现用户之间的即时通信功能。接口设计覆盖会话列表、消息获取与发送、已读标记、消息删除等功能，实现数据一致性与高效通信，同时满足社交互动和通知需求。
+
+\begin{table}[!htbp]
+  \caption{聊天模块接口}
+  \label{tab:chat-api}
+  \centering
+  \small
+  \begin{tabular}{p{1.6cm}p{4.6cm}p{6.2cm}}
+    \toprule
+    方法 & 接口路径 & 功能说明 \\
+    \midrule
+    GET & /api/chat/listUserChats & 获取用户会话列表 \\
+    POST & /api/chat/createChat & 创建或复用单聊会话 \\
+    GET & /api/chat/listMessages & 获取聊天消息列表 \\
+    POST & /api/chat/sendMessage & 发送消息 \\
+    PUT & /api/chat/markRead & 标记消息为已读 \\
+    PUT & /api/chat/deleteMessage & 删除单条消息 \\
+    PUT & /api/chat/addParticipant & 添加会话成员 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{交通模块接口设计}
+
+交通模块用于提供校园班车及公交信息查询功能，为用户出行提供基础数据支持。
+
+\begin{table}[!htbp]
+  \caption{交通模块接口}
+  \label{tab:transport-api}
+  \centering
+  \small
+  \begin{tabular}{p{1.6cm}p{4.6cm}p{6.2cm}}
+    \toprule
+    方法 & 接口路径 & 功能说明 \\
+    \midrule
+    GET & /api/transport/getNearestBusTime & 获取最近发车时间 \\
+    GET & /api/transport/getTimetables & 获取完整公共交通时刻表 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{本章小结}
+
+本章对系统设计进行了全面阐述，明确了系统的总体架构、分层结构、模块划分、数据库设计及接口设计等关键内容。在总体架构方面，系统采用前后端分离的微服务架构，前端微信小程序负责用户交互和界面展示，后端Spring Boot微服务承担业务逻辑处理，并通过RESTful接口与前端通信。分层设计将系统划分为表现层、接口层、业务逻辑层及数据存储层，职责清晰、内聚性高，既保证了系统的可扩展性，也便于维护和后续功能拓展。在模块设计上，系统围绕校园出行需求，将功能划分为用户管理、拼车服务、社区交流、聊天与通知以及公共交通信息五大模块。各模块根据业务特点设计了内部逻辑和操作流程，确保核心功能的高效实现。在数据库设计方面，采用MySQL和MongoDB的混合持久化方案，分别承载结构化业务数据与内容型、消息型半结构化数据，兼顾了数据一致性与灵活扩展性，同时通过逻辑关联和应用层接口保证模块间数据的协同。接口设计遵循RESTful风格，统一路径规范和数据格式，使系统前后端交互标准化、可靠且易于扩展。
+
+总体来看，本章通过系统架构、模块设计、数据库建模与接口设计的详细说明，为系统实现提供了清晰而完整的设计基础。各模块相互独立又通过逻辑关系协作，使校内综合交通平台在功能完整性、系统稳定性和用户体验上具备坚实保障，为系统实现提供了直接支撑。
