@@ -8,17 +8,21 @@
 
 \begin{lstlisting}[language=Python,caption={随机森林训练样本生成核心代码},label={lst:rf-generate}]
 def generate_sample():
+    # 1. 生成空间匹配特征
     start_match = round(random.uniform(0, 1), 3)
     end_match = round(random.uniform(0, 1), 3)
 
+    # 2. 生成时间匹配特征
     time_overlap = round(random.uniform(0, 1), 3)
     time_center_diff = random.randint(0, 120)
     is_time_compatible = 1 if time_overlap > 0.2 else 0
 
+    # 3. 生成用户侧特征
     user_credit = round(random.uniform(0.5, 1), 3)
     success_rate = round(random.uniform(0.3, 1), 3)
     late_rate = round(random.uniform(0, 0.5), 3)
 
+    # 4. 按预设权重计算目标评分
     score = (
         0.2 * start_match +
         0.2 * end_match +
@@ -30,9 +34,11 @@ def generate_sample():
         0.05 * late_rate
     )
 
+    # 5. 添加扰动并裁剪到 [0,1]
     noise = random.uniform(-0.05, 0.05)
     score = max(0, min(1, score + noise))
 
+    # 6. 返回完整样本
     return [
         start_match, end_match, time_overlap, time_center_diff,
         is_time_compatible, user_credit, success_rate, late_rate,
@@ -45,18 +51,22 @@ def generate_sample():
 \cref{lst:rf-train} 展示了随机森林模型训练阶段的核心实现。该部分代码负责完成数据读取、训练集与测试集划分、模型参数设置、误差指标计算以及训练结果保存，是拼车匹配算法从样本数据到可部署模型的关键环节。
 
 \begin{lstlisting}[language=Python,caption={随机森林模型训练核心代码},label={lst:rf-train}]
+# 数据文件路径与模型保存路径
 DATA_PATH = "data.csv"
 MODEL_PATH = "rf_model.pkl"
 
+# 训练阶段的关键参数
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 N_ESTIMATORS = 150
 MAX_DEPTH = 12
 
 def predict_score(model, features):
+    # 将单个样本转换为二维数组
     features_array = np.array(features).reshape(1, -1)
     pred = model.predict(features_array)[0]
 
+    # 将预测结果裁剪到评分区间
     if pred < 0:
         pred = 0.0
     elif pred > 1:
@@ -65,32 +75,183 @@ def predict_score(model, features):
     return float(pred)
 
 def main():
+    # 1. 读取训练数据
     df = pd.read_csv(DATA_PATH)
 
+    # 2. 提取特征和标签
     X = df.iloc[:, 0:8].values
     y = df.iloc[:, 8].values
 
+    # 3. 划分训练集与测试集
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE
     )
 
+    # 4. 初始化随机森林模型
     model = RandomForestRegressor(
         n_estimators=N_ESTIMATORS,
         max_depth=MAX_DEPTH,
         random_state=RANDOM_STATE
     )
 
+    # 5. 训练并预测
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
+    # 6. 计算误差指标
     mae = mean_absolute_error(y_test, y_pred)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
     print("MAE:", mae)
     print("RMSE:", rmse)
 
+    # 7. 保存模型文件，供在线预测使用
     joblib.dump(model, MODEL_PATH)
     print("模型保存为:", MODEL_PATH)
+\end{lstlisting}
+
+\appendixsubsection{规则评分与特征封装实现}
+
+\cref{lst:rule-score-java} 给出了拼车服务中规则评分的核心实现。代码先计算起点匹配、终点匹配和时间重叠等特征，再补入用户信用相关指标，最后按设定权重生成规则分数，并封装为 \texttt{RuleScore} 对象，为模型重排阶段提供输入。
+
+\begin{lstlisting}[language=Java,caption={拼车规则评分与特征封装核心代码},label={lst:rule-score-java}]
+@Data
+@AllArgsConstructor
+public class RuleScore {
+    private CarpoolOrder order;
+    private double score;
+    private double startMatch;
+    private double endMatch;
+    private double timeOverlap;
+    private double timeCenterDiff;
+    private double isTimeCompatible;
+    private double userCredit;
+    private double successRate;
+    private double lateRate;
+
+    // 按固定顺序返回模型输入特征
+    public double[] features() {
+        return new double[]{
+                startMatch,
+                endMatch,
+                timeOverlap,
+                timeCenterDiff,
+                isTimeCompatible,
+                userCredit,
+                successRate,
+                lateRate
+        };
+    }
+}
+
+private RuleScore scoreOrder(CarpoolOrder order, String startLocation, String endLocation,
+                             LocalTime startTime, LocalTime endTime) {
+    // 1. 计算空间和时间匹配特征
+    double startMatch = LocationMatcher.match(startLocation, order.getStartLocation());
+    double endMatch = LocationMatcher.match(endLocation, order.getEndLocation());
+    double timeOverlap = TimeMatchCalculator.overlapRatio(
+            startTime, endTime, order.getStartTime(), order.getEndTime());
+    double timeCenterDiff = TimeMatchCalculator.centerDiffMinutes(
+            startTime, endTime, order.getStartTime(), order.getEndTime());
+    double isTimeCompatible = timeOverlap > 0 ? 1.0 : 0.0;
+
+    // 2. 获取发布者信用统计信息
+    UserProfile profile = userClient.getUser(order.getUserId());
+    double userCredit = defaultNumber(profile.getUserCredit(), 1.0);
+    double successRate = defaultNumber(profile.getSuccessRate(), 1.0);
+    double lateRate = defaultNumber(profile.getLateRate(), 0.0);
+
+    // 3. 按预设权重生成规则分数
+    double score = 0.2 * startMatch
+            + 0.2 * endMatch
+            + 0.25 * timeOverlap
+            + 0.1 * (1 / (1 + timeCenterDiff))
+            + 0.1 * isTimeCompatible
+            + 0.1 * userCredit
+            + 0.1 * successRate
+            - 0.05 * lateRate;
+
+    // 4. 返回封装后的候选评分对象
+    return new RuleScore(
+            order,
+            clamp(score),
+            startMatch,
+            endMatch,
+            timeOverlap,
+            timeCenterDiff,
+            isTimeCompatible,
+            userCredit,
+            successRate,
+            lateRate
+    );
+}
+\end{lstlisting}
+
+\appendixsubsection{拼车反馈提交实现}
+
+\cref{lst:feedback-java} 展示了拼车服务中反馈提交的关键处理逻辑。该实现负责校验评价资格、过滤非法评价对象、防止重复提交，并在保存反馈记录后同步更新用户拼车统计，是信用约束闭环中的重要环节。
+
+\begin{lstlisting}[language=Java,caption={拼车反馈提交核心代码},label={lst:feedback-java}]
+@Transactional
+@SuppressWarnings("unchecked")
+public Map<String, Object> submitFeedback(Long orderId, Long reviewerUserId,
+                                          List<Map<String, Object>> feedbackItems) {
+    // 1. 先确认订单当前是否允许反馈
+    CarpoolOrder order = getOrder(orderId);
+    if (!isFeedbackAvailable(order)) {
+        throw new IllegalArgumentException("Feedback is not available for this order");
+    }
+
+    // 2. 计算当前用户可评价的目标集合
+    List<Long> allowedTargets = feedbackTargetIds(order, reviewerUserId);
+    if (allowedTargets.isEmpty()) {
+        throw new IllegalArgumentException("No feedback target for this user");
+    }
+    if (feedbackItems == null || feedbackItems.isEmpty()) {
+        feedbackItems = defaultFeedbackItems(allowedTargets);
+    }
+
+    int savedCount = 0;
+    for (Map<String, Object> item : feedbackItems) {
+        Long targetUserId = longValue(item.get("targetUserId"), null);
+
+        // 3. 校验评价目标是否合法
+        if (targetUserId == null || !allowedTargets.contains(targetUserId)) {
+            throw new IllegalArgumentException("Invalid feedback target");
+        }
+
+        // 4. 同一订单中避免重复评价
+        if (feedbackRepository.existsByOrderIdAndReviewerUserIdAndTargetUserId(
+                orderId, reviewerUserId, targetUserId)) {
+            continue;
+        }
+
+        double score = doubleValue(item.get("score"), 1.0);
+        if (score < 0 || score > 1) {
+            throw new IllegalArgumentException("score must be between 0 and 1");
+        }
+
+        boolean late = booleanValue(item.get("late"), false);
+        boolean completed = booleanValue(item.get("completed"), true);
+
+        // 5. 构造并保存反馈记录
+        CarpoolFeedback feedback = new CarpoolFeedback();
+        feedback.setOrderId(orderId);
+        feedback.setReviewerUserId(reviewerUserId);
+        feedback.setTargetUserId(targetUserId);
+        feedback.setScore(score);
+        feedback.setLate(late);
+        feedback.setCompleted(completed);
+        feedback.setCreatedAt(LocalDateTime.now());
+        feedbackRepository.save(feedback);
+
+        // 6. 同步更新被评价用户的拼车统计
+        userClient.updateCarpoolStats(targetUserId, score, late, completed);
+        savedCount++;
+    }
+
+    return Map.of("submitted", true, "savedCount", savedCount, "orderId", orderId);
+}
 \end{lstlisting}
 
 \appendixsubsection{在线预测接口实现}
@@ -99,12 +260,16 @@ def main():
 
 \begin{lstlisting}[language=Python,caption={随机森林在线预测接口核心代码},label={lst:rf-api}]
 def validate_features(features):
+    # 1. 判空检查
     if features is None:
         return False, "features 不能为空"
+    # 2. 类型检查
     if not isinstance(features, list):
         return False, "features 必须是数组"
+    # 3. 长度检查
     if len(features) != 8:
         return False, "features 长度必须为 8"
+    # 4. 数值检查
     for f in features:
         if not isinstance(f, (int, float)):
             return False, "features 中必须全部为数字"
@@ -112,17 +277,21 @@ def validate_features(features):
 
 @app.post("/predict")
 async def predict(request: Request):
+    # 读取请求体中的特征向量
     data = await request.json()
     features = data.get("features")
 
+    # 输入校验失败则直接返回错误信息
     is_valid, error_msg = validate_features(features)
     if not is_valid:
         return JSONResponse(status_code=400, content={"error": error_msg})
 
+    # 调用模型进行预测
     input_data = [features]
     result = model.predict(input_data)
     score = float(result[0])
 
+    # 将预测值裁剪到 [0,1]
     if score < 0:
         score = 0.0
     elif score > 1:
