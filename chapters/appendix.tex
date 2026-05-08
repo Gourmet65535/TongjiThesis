@@ -40,6 +40,59 @@ def generate_sample():
     ]
 \end{lstlisting}
 
+\appendixsubsection{模型训练与评估实现}
+
+\cref{lst:rf-train} 展示了随机森林模型训练阶段的核心实现。该部分代码负责完成数据读取、训练集与测试集划分、模型参数设置、误差指标计算以及训练结果保存，是拼车匹配算法从样本数据到可部署模型的关键环节。
+
+\begin{lstlisting}[language=Python,caption={随机森林模型训练核心代码},label={lst:rf-train}]
+DATA_PATH = "data.csv"
+MODEL_PATH = "rf_model.pkl"
+
+TEST_SIZE = 0.2
+RANDOM_STATE = 42
+N_ESTIMATORS = 150
+MAX_DEPTH = 12
+
+def predict_score(model, features):
+    features_array = np.array(features).reshape(1, -1)
+    pred = model.predict(features_array)[0]
+
+    if pred < 0:
+        pred = 0.0
+    elif pred > 1:
+        pred = 1.0
+
+    return float(pred)
+
+def main():
+    df = pd.read_csv(DATA_PATH)
+
+    X = df.iloc[:, 0:8].values
+    y = df.iloc[:, 8].values
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE
+    )
+
+    model = RandomForestRegressor(
+        n_estimators=N_ESTIMATORS,
+        max_depth=MAX_DEPTH,
+        random_state=RANDOM_STATE
+    )
+
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+    print("MAE:", mae)
+    print("RMSE:", rmse)
+
+    joblib.dump(model, MODEL_PATH)
+    print("模型保存为:", MODEL_PATH)
+\end{lstlisting}
+
 \appendixsubsection{在线预测接口实现}
 
 \cref{lst:rf-api} 展示了模型服务中用于输入校验与在线预测的关键实现。该部分代码基于 FastAPI 提供 \texttt{/predict} 接口，在接收后端传入的特征向量后完成数据合法性检查、模型调用和预测结果裁剪，是拼车匹配算法在线执行流程中的关键支撑部分。
