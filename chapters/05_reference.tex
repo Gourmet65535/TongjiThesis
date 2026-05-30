@@ -131,28 +131,9 @@
   \item $o.\text{userId}$：订单发布者的唯一标识。
 \end{itemize}
 
-\subsubsection{规则筛选层建模}
+\subsubsection{随机森林排序层建模}
 
-规则筛选层包含硬约束过滤与规则评分两个阶段。
-
-\textbf{（1）硬约束过滤。}
-对于查询请求 $q$ 和候选订单 $o$，定义硬约束集合 $\mathcal{C}$，当且仅当以下条件全部满足时，$o$ 进入候选集 $\mathcal{O}_{\text{cand}}$：
-
-\begin{equation}
-\mathcal{O}_{\text{cand}} = \bigl\{ o \in \mathcal{O} \;\big|\;
-o.\text{status} = \text{OPEN},\;
-o.\text{seatsUsed} < o.\text{seatsTotal},\;
-M_{\text{start}}(q, o) > 0,\;
-M_{\text{end}}(q, o) > 0,\;
-T_{\text{overlap}}(q, o) > 0
-\bigr\}
-\label{eq:rule-filter}
-\end{equation}
-
-其中 $M_{\text{start}}(q, o)$ 和 $M_{\text{end}}(q, o)$ 分别表示出发地和目的地的空间匹配度，$T_{\text{overlap}}(q, o)$ 表示时间重叠比例。这三个函数的取值范围均为 $[0, 1]$，值为 0 时表示完全不匹配，对应的订单将被直接剔除。
-
-\textbf{（2）特征提取。}
-对于通过硬约束的候选订单 $o \in \mathcal{O}_{\text{cand}}$，提取如下 8 维特征向量：
+规则筛选层完成硬约束过滤后，为每个通过筛选的候选订单提取如下 8 维特征向量，作为随机森林模型的输入：
 
 \begin{equation}
 \mathbf{x}(q, o) = \bigl[
@@ -173,28 +154,6 @@ x_1,\; x_2,\; x_3,\; x_4,\; x_5,\; x_6,\; x_7,\; x_8
   \item $x_7 = \text{successRate}(o.\text{userId})$：发布者的拼车完成率，$x_7 \in [0.3, 1]$。
   \item $x_8 = \text{lateRate}(o.\text{userId})$：发布者的迟到率，$x_8 \in [0, 0.5]$。
 \end{itemize}
-
-\textbf{（3）规则评分函数。}
-基于上述特征，定义线性规则评分函数 $S_{\text{rule}}$。由于时间中心差 $x_4$ 的数值范围与其余特征差异较大，系统对其采用倒数衰减变换，完整的评分公式为：
-
-\begin{equation}
-\begin{aligned}
-S_{\text{rule}}(\mathbf{x}) =&\; w_1 \cdot x_1 + w_2 \cdot x_2 + w_3 \cdot x_3 + w_4 \cdot \frac{1}{1 + x_4} \\
-&+ w_5 \cdot x_5 + w_6 \cdot x_6 + w_7 \cdot x_7 + w_8 \cdot x_8
-\end{aligned}
-\label{eq:rule-score}
-\end{equation}
-
-其中权重向量 $\mathbf{w} = [w_1, w_2, \dots, w_8]$ 根据业务经验固定为：
-
-\begin{equation}
-\mathbf{w} = \bigl[0.20,\; 0.20,\; 0.25,\; 0.10,\; 0.10,\; 0.10,\; 0.10,\; -0.05\bigr]
-\label{eq:weights}
-\end{equation}
-
-$w_8$ 取负值表示迟到率越高则评分越低。规则评分使得通过硬约束的候选订单获得初步排序依据。
-
-\subsubsection{随机森林排序层建模}
 
 规则评分依赖人工设定的固定权重，难以捕捉特征之间的非线性交互关系。为此，系统在规则层之上引入随机森林回归模型进行二次评分 \cite{breiman2001}。
 
@@ -226,7 +185,7 @@ S_{\text{RF}}(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^{B} f_b(\mathbf{x})
 其中 $B$ 为树的数量，本系统中 $B = 150$，每棵树的最大深度为 $12$。在每次分裂时，从全部 8 个特征中选择最优分裂点，不进行特征抽样。
 
 \textbf{（3）模型训练目标。}
-给定训练样本集 $\mathcal{D} = \{ (\mathbf{x}_i, y_i) \}_{i=1}^{N}$，其中 $y_i \in [0, 1]$ 为目标评分（由式(\ref{eq:rule-score})叠加 $\mathcal{U}(-0.05, 0.05)$ 的随机扰动后裁剪至 $[0, 1]$ 得到），训练目标为最小化均方误差：
+给定训练样本集 $\mathcal{D} = \{ (\mathbf{x}_i, y_i) \}_{i=1}^{N}$，其中 $y_i \in [0, 1]$ 为目标评分（由规则评分函数叠加 $\mathcal{U}(-0.05, 0.05)$ 的随机扰动后裁剪至 $[0, 1]$ 得到），训练目标为最小化均方误差：
 
 \begin{equation}
 \mathcal{L}(\mathcal{F}) = \frac{1}{N} \sum_{i=1}^{N} \bigl( S_{\text{RF}}(\mathbf{x}_i) - y_i \bigr)^2
@@ -240,8 +199,8 @@ S_{\text{RF}}(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^{B} f_b(\mathbf{x})
 综合规则筛选层与随机森林排序层，拼车匹配的在线执行过程可形式化描述如下：
 
 \begin{enumerate}
-  \item \textbf{硬约束过滤}：对全部在库订单 $\mathcal{O}$ 应用式(\ref{eq:rule-filter})，得到候选集 $\mathcal{O}_{\text{cand}}$。
-  \item \textbf{规则评分与排序}：对 $\mathcal{O}_{\text{cand}}$ 中的每个订单提取特征并计算式(\ref{eq:rule-score})的规则分数，按分数降序排列，取前 $K$ 个构成高质量候选集 $\mathcal{O}_{\text{top}}$。
+  \item \textbf{硬约束过滤}：对全部在库订单 $\mathcal{O}$ 进行状态、座位、空间与时间约束的可行性检查，筛选出候选集 $\mathcal{O}_{\text{cand}}$。
+  \item \textbf{规则评分与排序}：对 $\mathcal{O}_{\text{cand}}$ 中的每个订单提取特征并计算规则分数，按分数降序排列，取前 $K$ 个构成高质量候选集 $\mathcal{O}_{\text{top}}$。
   \item \textbf{模型重排}：对 $\mathcal{O}_{\text{top}}$ 中的每个订单调用式(\ref{eq:rf-pred})获取模型分数，预测结果裁剪至 $[0, 1]$，按模型分数降序重新排列，得到最终推荐列表。
   \item \textbf{降级处理}：若模型服务不可用，则直接返回第 2 步的规则排序结果，避免模型成为系统可用性的单点风险。
 \end{enumerate}
