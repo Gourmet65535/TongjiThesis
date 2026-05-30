@@ -113,6 +113,141 @@
 
 二层机制的第一层负责缩小候选范围，第二层负责在满足约束的候选中区分优先级。这样既能保证结果可解释，也能把模型调用开销控制在较小范围内。
 
+\subsection{匹配问题形式化建模}
+
+为便于描述算法逻辑，本节先对拼车匹配问题进行形式化定义。
+
+\subsubsection{基本符号定义}
+
+设拼车订单集合为 $\mathcal{O} = \{o_1, o_2, \dots, o_n\}$。对于某一用户发起的查询请求 $q$，定义如下符号：
+
+\begin{itemize}
+  \item $q.\text{start}$、$q.\text{end}$：查询请求的出发地和目的地。
+  \item $q.\text{startTime}$、$q.\text{endTime}$：查询请求的期望时间窗口。
+  \item $o.\text{start}$、$o.\text{end}$：候选订单 $o$ 的出发地和目的地。
+  \item $o.\text{startTime}$、$o.\text{endTime}$：候选订单 $o$ 的时间窗口。
+  \item $o.\text{status}$：订单状态，$\text{OPEN}$ 表示可被匹配。
+  \item $o.\text{seatsUsed} < o.\text{seatsTotal}$：订单仍有空余座位。
+  \item $o.\text{userId}$：订单发布者的唯一标识。
+\end{itemize}
+
+\subsubsection{规则筛选层建模}
+
+规则筛选层包含硬约束过滤与规则评分两个阶段。
+
+\textbf{（1）硬约束过滤。}
+对于查询请求 $q$ 和候选订单 $o$，定义硬约束集合 $\mathcal{C}$，当且仅当以下条件全部满足时，$o$ 进入候选集 $\mathcal{O}_{\text{cand}}$：
+
+\begin{equation}
+\mathcal{O}_{\text{cand}} = \bigl\{ o \in \mathcal{O} \;\big|\;
+o.\text{status} = \text{OPEN},\;
+o.\text{seatsUsed} < o.\text{seatsTotal},\;
+M_{\text{start}}(q, o) > 0,\;
+M_{\text{end}}(q, o) > 0,\;
+T_{\text{overlap}}(q, o) > 0
+\bigr\}
+\label{eq:rule-filter}
+\end{equation}
+
+其中 $M_{\text{start}}(q, o)$ 和 $M_{\text{end}}(q, o)$ 分别表示出发地和目的地的空间匹配度，$T_{\text{overlap}}(q, o)$ 表示时间重叠比例。这三个函数的取值范围均为 $[0, 1]$，值为 0 时表示完全不匹配，对应的订单将被直接剔除。
+
+\textbf{（2）特征提取。}
+对于通过硬约束的候选订单 $o \in \mathcal{O}_{\text{cand}}$，提取如下 8 维特征向量：
+
+\begin{equation}
+\mathbf{x}(q, o) = \bigl[
+x_1,\; x_2,\; x_3,\; x_4,\; x_5,\; x_6,\; x_7,\; x_8
+\bigr]^{\top}
+\label{eq:feature-vector}
+\end{equation}
+
+各特征的具体定义如下：
+
+\begin{itemize}
+  \item $x_1 = M_{\text{start}}(q, o)$：出发地空间匹配度（起点匹配），$x_1 \in [0, 1]$。
+  \item $x_2 = M_{\text{end}}(q, o)$：目的地空间匹配度（终点匹配），$x_2 \in [0, 1]$。
+  \item $x_3 = T_{\text{overlap}}(q, o)$：时间窗口重叠比例，$x_3 \in [0, 1]$，重叠比例越高表示时间越吻合。
+  \item $x_4 = T_{\text{center}}(q, o)$：时间中心差，定义为两个时间窗口中点之差，单位：分钟。
+  \item $x_5 = \mathbb{I}\bigl[T_{\text{overlap}}(q, o) > 0.2\bigr]$：时间兼容指示变量，当重叠比例超过阈值 $0.2$ 时取 $1$，否则取 $0$。
+  \item $x_6 = \text{credit}(o.\text{userId})$：订单发布者的信用评分，$x_6 \in [0.5, 1]$。
+  \item $x_7 = \text{successRate}(o.\text{userId})$：发布者的拼车完成率，$x_7 \in [0.3, 1]$。
+  \item $x_8 = \text{lateRate}(o.\text{userId})$：发布者的迟到率，$x_8 \in [0, 0.5]$。
+\end{itemize}
+
+\textbf{（3）规则评分函数。}
+基于上述特征，定义线性规则评分函数 $S_{\text{rule}}$。由于时间中心差 $x_4$ 的数值范围与其余特征差异较大，系统对其采用倒数衰减变换，完整的评分公式为：
+
+\begin{equation}
+\begin{aligned}
+S_{\text{rule}}(\mathbf{x}) =&\; w_1 \cdot x_1 + w_2 \cdot x_2 + w_3 \cdot x_3 + w_4 \cdot \frac{1}{1 + x_4} \\
+&+ w_5 \cdot x_5 + w_6 \cdot x_6 + w_7 \cdot x_7 + w_8 \cdot x_8
+\end{aligned}
+\label{eq:rule-score}
+\end{equation}
+
+其中权重向量 $\mathbf{w} = [w_1, w_2, \dots, w_8]$ 根据业务经验固定为：
+
+\begin{equation}
+\mathbf{w} = \bigl[0.20,\; 0.20,\; 0.25,\; 0.10,\; 0.10,\; 0.10,\; 0.10,\; -0.05\bigr]
+\label{eq:weights}
+\end{equation}
+
+$w_8$ 取负值表示迟到率越高则评分越低。规则评分使得通过硬约束的候选订单获得初步排序依据。
+
+\subsubsection{随机森林排序层建模}
+
+规则评分依赖人工设定的固定权重，难以捕捉特征之间的非线性交互关系。为此，系统在规则层之上引入随机森林回归模型进行二次评分 \cite{breiman2001}。
+
+\textbf{（1）模型形式。}
+随机森林回归模型由 $B$ 棵回归树构成：
+
+\begin{equation}
+\mathcal{F} = \{ f_1(\mathbf{x}), f_2(\mathbf{x}), \dots, f_B(\mathbf{x}) \}
+\label{eq:rf-ensemble}
+\end{equation}
+
+每棵回归树 $f_b$ 将特征空间递归划分为若干互不相交的叶子节点区域 $\mathcal{R}_{b,1}, \mathcal{R}_{b,2}, \dots$，每个区域对应一个常数值预测。对于输入特征向量 $\mathbf{x}$，第 $b$ 棵树的预测值为：
+
+\begin{equation}
+f_b(\mathbf{x}) = \sum_{j} c_{b,j} \cdot \mathbb{I}\bigl[\mathbf{x} \in \mathcal{R}_{b,j}\bigr]
+\label{eq:tree-pred}
+\end{equation}
+
+其中 $c_{b,j}$ 为第 $b$ 棵树第 $j$ 个叶子节点上落入该区域的训练样本的目标值均值，$\mathbb{I}[\cdot]$ 为指示函数。
+
+\textbf{（2）集成预测。}
+随机森林的最终预测由所有回归树的预测值取算术平均得到：
+
+\begin{equation}
+S_{\text{RF}}(\mathbf{x}) = \frac{1}{B} \sum_{b=1}^{B} f_b(\mathbf{x})
+\label{eq:rf-pred}
+\end{equation}
+
+其中 $B$ 为树的数量，本系统中 $B = 150$，每棵树的最大深度为 $12$。在每次分裂时，从全部 8 个特征中选择最优分裂点，不进行特征抽样。
+
+\textbf{（3）模型训练目标。}
+给定训练样本集 $\mathcal{D} = \{ (\mathbf{x}_i, y_i) \}_{i=1}^{N}$，其中 $y_i \in [0, 1]$ 为目标评分（由式(\ref{eq:rule-score})叠加 $\mathcal{U}(-0.05, 0.05)$ 的随机扰动后裁剪至 $[0, 1]$ 得到），训练目标为最小化均方误差：
+
+\begin{equation}
+\mathcal{L}(\mathcal{F}) = \frac{1}{N} \sum_{i=1}^{N} \bigl( S_{\text{RF}}(\mathbf{x}_i) - y_i \bigr)^2
+\label{eq:rf-loss}
+\end{equation}
+
+每棵树的训练采用自助采样法（Bootstrap），从 $\mathcal{D}$ 中有放回地抽取 $N$ 个样本构成训练子集。训练集与测试集按 $8:2$ 的比例划分，随机种子固定为 $42$。模型训练完成后序列化保存，供在线预测服务加载。
+
+\subsubsection{二层匹配总流程}
+
+综合规则筛选层与随机森林排序层，拼车匹配的在线执行过程可形式化描述如下：
+
+\begin{enumerate}
+  \item \textbf{硬约束过滤}：对全部在库订单 $\mathcal{O}$ 应用式(\ref{eq:rule-filter})，得到候选集 $\mathcal{O}_{\text{cand}}$。
+  \item \textbf{规则评分与排序}：对 $\mathcal{O}_{\text{cand}}$ 中的每个订单提取特征并计算式(\ref{eq:rule-score})的规则分数，按分数降序排列，取前 $K$ 个构成高质量候选集 $\mathcal{O}_{\text{top}}$。
+  \item \textbf{模型重排}：对 $\mathcal{O}_{\text{top}}$ 中的每个订单调用式(\ref{eq:rf-pred})获取模型分数，预测结果裁剪至 $[0, 1]$，按模型分数降序重新排列，得到最终推荐列表。
+  \item \textbf{降级处理}：若模型服务不可用，则直接返回第 2 步的规则排序结果，避免模型成为系统可用性的单点风险。
+\end{enumerate}
+
+通过这一二层机制，系统在确保候选订单满足基本出行业务约束的前提下，利用随机森林对多源特征的非线性组合能力实现更精细的排序。
+
 \subsection{规则筛选层实现}
 
 规则筛选层先处理用户输入合法性，再处理候选订单可行性。系统会检查地点是否属于预设范围、起止时间是否合理，并仅从开放状态且日期匹配的订单中继续筛选。随后，算法分别计算起点匹配、终点匹配和时间重叠程度，不满足基础条件的订单会被直接剔除。这样做，是为了先去掉明显不合适的候选，避免后续排序建立在大量无效订单之上。
